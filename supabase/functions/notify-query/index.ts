@@ -1,6 +1,6 @@
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ADMIN_EMAIL =
-  Deno.env.get("ADMIN_EMAIL") || "info@albaenterprises.co.in";
+  Deno.env.get("ADMIN_EMAIL") || "etalba87@gmail.com";
 
 interface Payload {
   name: string;
