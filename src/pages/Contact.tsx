@@ -105,24 +105,36 @@ const Contact = () => {
         cvUrl = urlData.publicUrl;
       }
 
-      // Insert query record
+    
+     // Insert query record
       const { error: insertError } = await supabase
-        .from("queries")
-        .insert({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          message: formData.message,
-          cv_url: cvUrl,
-        });
+      .from("queries")
+      .insert({
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      message: formData.message,
+      cv_url: cvUrl,
+  });
 
-      if (insertError) throw insertError;
+if (insertError) throw insertError;
 
-      setSuccess(true);
-      toast({
-        title: "Query Submitted!",
-        description: "Thank you for reaching out. We'll get back to you shortly.",
-      });
+// Send email notification
+await supabase.functions.invoke("notify-query", {
+  body: {
+    name: formData.name,
+    email: formData.email,
+    phone: formData.phone,
+    message: formData.message,
+  },
+});
+
+setSuccess(true);
+
+toast({
+  title: "Query Submitted!",
+  description: "Thank you for reaching out. We'll get back to you shortly.",
+});
 
       // Reset form after delay
       setTimeout(() => {
@@ -223,7 +235,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold mb-1">Email</h3>
-                      <a href="mailto:info@albaenterprises.co.in" className="text-muted-foreground hover:text-primary transition-colors">
+                      <a href="mailto:etalba87@gmail.com" className="text-muted-foreground hover:text-primary transition-colors">
                         info@albaenterprises.co.in
                       </a>
                     </div>
@@ -242,7 +254,7 @@ const Contact = () => {
                   <Button
                     size="lg"
                     variant="outline"
-                    onClick={() => window.location.href = "mailto:info@albaenterprises.co.in"}
+                    onClick={() => window.location.href = "mailto:etalba87@gmail.com"}
                   >
                     Get Free Quote
                   </Button>
