@@ -170,7 +170,7 @@ const Services = () => {
                   Call Us Now
                 </a>
                 <a
-                  href="mailto:info@albaenterprises.co.in"
+                  href="mailto:etalba87@gmail.com"
                   className="inline-flex items-center justify-center h-11 px-8 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
                 >
                   Email Us

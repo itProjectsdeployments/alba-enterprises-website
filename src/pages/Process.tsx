@@ -191,7 +191,7 @@ const Process = () => {
                   Call +91 9599591769
                 </a>
                 <a
-                  href="mailto:info@albaenterprises.co.in"
+                  href="mailto:etalba87@gmail.com"
                   className="inline-flex items-center justify-center h-11 px-8 rounded-md border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary transition-colors"
                 >
                   Email Us

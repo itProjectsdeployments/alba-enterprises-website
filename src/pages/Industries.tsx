@@ -241,7 +241,7 @@ const Industries = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a
-                  href="mailto:info@albaenterprises.co.in"
+                  href="mailto:etalba87@gmail.com"
                   className="inline-flex items-center justify-center h-11 px-8 rounded-md bg-background text-foreground hover:bg-background/90 transition-colors"
                 >
                   Discuss Your Requirements

@@ -66,7 +66,7 @@ const Home = () => {
             "@type": "ContactPoint",
             telephone: "+91-9599591769",
             contactType: "customer service",
-            email: "info@albaenterprises.co.in",
+            email: "etalba87@gmail.com",
           },
         }}
       />

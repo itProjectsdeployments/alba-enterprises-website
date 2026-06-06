@@ -24,7 +24,7 @@ const Chatbot = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const mailtoLink = `mailto:info@albaenterprises.co.in?subject=Inquiry from ${formData.name}&body=Name: ${formData.name}%0D%0APhone: ${formData.phone}%0D%0ARequirement: ${formData.requirement}`;
+    const mailtoLink = `mailto:etalba87@gmail.com?subject=Inquiry from ${formData.name}&body=Name: ${formData.name}%0D%0APhone: ${formData.phone}%0D%0ARequirement: ${formData.requirement}`;
     window.location.href = mailtoLink;
     
     toast({
