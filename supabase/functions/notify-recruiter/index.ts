@@ -29,7 +29,7 @@ serve(async (req) => {
       from: "Alba Enterprise <onboarding@resend.dev>",
 
       // 👇 Change this to your recruiter email
-      to: ["azam@albaenterprise.in"],
+      to: ["etalba87@gmail.com"],
 
       subject: `New Hiring Requirement - ${job_title}`,
 
