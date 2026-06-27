@@ -4,7 +4,7 @@ const PrivacyPolicy = () => {
       <h1 className="text-4xl font-bold mb-6">Privacy Policy</h1>
 
       <p className="mb-4">
-        Alba Enterprises respects your privacy and is committed to protecting
+        Alba Enterprise respects your privacy and is committed to protecting
         your personal information.
       </p>
 

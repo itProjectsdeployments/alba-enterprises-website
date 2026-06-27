@@ -36,7 +36,7 @@ const Chatbot = () => {
   };
 
   const handleWhatsApp = () => {
-    window.open("https://wa.me/919599591769", "_blank");
+    window.open("https://wa.me/918527881258", "_blank");
   };
 
   return (
@@ -64,7 +64,7 @@ const Chatbot = () => {
           >
             {/* Header */}
             <div className="bg-primary text-primary-foreground p-4">
-              <h3 className="font-semibold text-lg">Alba Enterprises</h3>
+              <h3 className="font-semibold text-lg">Alba Enterprise</h3>
               <p className="text-sm opacity-90">How can we help you today?</p>
             </div>
 

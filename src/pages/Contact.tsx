@@ -156,14 +156,14 @@ toast({
   };
 
   const handleWhatsApp = () => {
-    window.open("https://wa.me/919599591769", "_blank");
+    window.open("https://wa.me/918527881258", "_blank");
   };
 
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Contact Alba Enterprises | Submit Your CV"
-        description="Get in touch with Alba Enterprises. Submit your CV, ask a question or explore international career opportunities with our recruitment team."
+        title="Contact Alba Enterprise | Submit Your CV"
+        description="Get in touch with Alba Enterprise. Submit your CV, ask a question or explore international career opportunities with our recruitment team."
         path="/contact"
       />
       <Navbar />
@@ -172,7 +172,11 @@ toast({
         {/* Hero Section */}
         <section className="relative text-primary-foreground py-20 overflow-hidden">
           <div className="absolute inset-0">
-            <img src={contactHeroImage} alt="" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
+            <img src={contactHeroImage}
+              alt="Contact Alba Enterprise for overseas recruitment services, international job placements and manpower consultancy"
+              className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50" />
           </div>
           <div className="container mx-auto px-4 relative z-10">
@@ -223,8 +227,8 @@ toast({
                     </div>
                     <div>
                       <h3 className="font-semibold mb-1">Phone</h3>
-                      <a href="tel:+919599591769" className="text-muted-foreground hover:text-primary transition-colors">
-                        +91 9599591769
+                      <a href="tel:+918527881258" className="text-muted-foreground hover:text-primary transition-colors">
+                        +91 8527881258
                       </a>
                     </div>
                   </div>
@@ -236,7 +240,7 @@ toast({
                     <div>
                       <h3 className="font-semibold mb-1">Email</h3>
                       <a href="mailto:etalba87@gmail.com" className="text-muted-foreground hover:text-primary transition-colors">
-                        info@albaenterprises.co.in
+                        info@albaenterprise.in
                       </a>
                     </div>
                   </div>
@@ -270,7 +274,7 @@ toast({
                     allowFullScreen
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
-                    title="Alba Enterprises Location"
+                    title="Alba Enterprise Location"
                   />
                 </div>
               </motion.div>

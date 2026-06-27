@@ -20,45 +20,47 @@ const Process = () => {
       icon: FileText,
       image: cvSelectionImage,
       title: "CV Selection",
-      description: "Comprehensive review and shortlisting of candidate profiles based on job requirements and qualifications.",
+      description: "Comprehensive CV screening and candidate shortlisting based on employer requirements, qualifications, skills and overseas job eligibility.",
     },
     {
       icon: Video,
       image: interviewImage,
       title: "Interview Mode",
-      description: "Structured interviews conducted to assess technical skills, experience, and cultural fit.",
+      description: "Technical and HR interviews are conducted to evaluate professional skills, communication abilities and suitability for international employment.",
     },
     {
       icon: Heart,
       image: medicalImage,
       title: "Medical Check-up",
-      description: "Complete medical examination as per destination country requirements to ensure fitness for work.",
+      description: "Candidates undergo complete medical examinations according to destination country regulations before visa approval.",
     },
     {
       icon: FileCheck,
       image: visaImage,
       title: "VISA Process Services",
-      description: "End-to-end visa application support including documentation, submission, and follow-up.",
+      description: "Complete work visa processing including documentation, embassy submission, visa stamping and application tracking.",
     },
     {
       icon: FileSignature,
       image: attestationImage,
       title: "Document Attestation",
-      description: "Authentication and attestation of all required documents from relevant authorities.",
+      description: "Educational, professional and personal documents are authenticated and attested according to destination country requirements.",
     },
     {
       icon: Plane,
       image: emigrationImage,
       title: "Emigration Services",
-      description: "Complete emigration clearance and pre-departure orientation for smooth transition.",
+      description: "We provide complete emigration clearance, travel guidance and pre-departure orientation for a smooth overseas transition.",
     },
   ];
 
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Our Recruitment Process | Alba Enterprises"
-        description="From CV selection and interviews to medical, visa, attestation and emigration — see Alba Enterprises' transparent end-to-end recruitment process."
+       title="International Recruitment Process | Overseas Job Placement | Alba Enterprise"
+
+      description="Learn Alba Enterprise's step-by-step international recruitment process including CV selection, 
+      interviews, medical examination, work visa processing, document attestation and overseas emigration support."
         path="/process"
       />
       <Navbar />
@@ -67,7 +69,7 @@ const Process = () => {
         {/* Hero Section */}
         <section className="relative text-primary-foreground py-20 overflow-hidden">
           <div className="absolute inset-0">
-            <img src={processHeroImage} alt="" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
+            <img src={processHeroImage} alt="International recruitment process for overseas jobs by Alba Enterprise" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50" />
           </div>
           <div className="container mx-auto px-4 relative z-10">
@@ -77,9 +79,9 @@ const Process = () => {
               transition={{ duration: 0.6 }}
               className="text-center max-w-3xl mx-auto"
             >
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Recruitment Process</h1>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">International Recruitment Process</h1>
               <p className="text-lg opacity-90">
-                Our streamlined 6-step process ensures quality placements and compliance
+                Our proven six-step international recruitment process ensures quality overseas placements, work visa compliance and smooth candidate onboarding.
               </p>
             </motion.div>
           </div>
@@ -109,7 +111,18 @@ const Process = () => {
                       <div className="relative">
                         <img 
                           src={step.image} 
-                          alt={step.title}
+                          alt={ step.title === "CV Selection"
+                          ? "CV selection for international recruitment"
+                          : step.title === "Interview Mode"
+                          ? "Candidate interview process for overseas jobs"
+                          : step.title === "Medical Check-up"
+                          ? "Medical examination for overseas employment"
+                          : step.title === "VISA Process Services"
+                          ? "Work visa processing and visa stamping"
+                          : step.title === "Document Attestation"
+                          ? "Document attestation for international employment"
+                          : "Emigration services for overseas job placement"
+                      }
                           className="w-full md:w-64 h-48 object-cover rounded-lg shadow-lg"
                          loading="lazy" decoding="async" />
                         <div className="absolute -top-4 -left-4 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg shadow-lg">
@@ -148,14 +161,13 @@ const Process = () => {
               transition={{ duration: 0.6 }}
               className="max-w-3xl mx-auto text-center bg-background/95 backdrop-blur-sm p-12 rounded-2xl shadow-xl"
             >
-              <h2 className="text-3xl font-bold mb-6">Process Timeline</h2>
+              <h2 className="text-3xl font-bold mb-6">International Recruitment Timeline</h2>
               <p className="text-lg text-muted-foreground mb-4">
-                The complete recruitment process typically takes <strong>3 to 6 months</strong>, 
-                depending on the destination country, visa requirements, and document processing times.
+                Our international recruitment process generally takes <strong>3–6 months</strong> depending on the destination country,
+                 employer requirements, visa approval timelines and document verification procedures.
               </p>
               <p className="text-lg text-muted-foreground">
-                We maintain transparent communication throughout the process and provide regular 
-                updates to both employers and candidates.
+                Throughout the recruitment journey, Alba Enterprise provides regular updates, documentation support and complete guidance to both employers and overseas job candidates.
               </p>
             </motion.div>
           </div>
@@ -177,21 +189,20 @@ const Process = () => {
               </div>
               <div className="relative z-10">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Ready to Get Started?
+                Ready to Start Your Overseas Career?
               </h2>
               <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-                Let us guide you through our proven recruitment process. 
-                Contact us today to begin your journey.
+                Whether you are an employer looking for skilled manpower or a professional seeking overseas employment, our international recruitment team is ready to assist you.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a
-                  href="tel:+919599591769"
+                  href="tel:+918527881258"
                   className="inline-flex items-center justify-center h-11 px-8 rounded-md bg-background text-foreground hover:bg-background/90 transition-colors"
                 >
-                  Call +91 9599591769
+                  Call +91 8527881258
                 </a>
                 <a
-                  href="mailto:etalba87@gmail.com"
+                  href="mailto:info@albaenterprise.in"
                   className="inline-flex items-center justify-center h-11 px-8 rounded-md border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary transition-colors"
                 >
                   Email Us

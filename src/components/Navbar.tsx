@@ -45,7 +45,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
-            <img src={albaLogo} alt="Alba Enterprises Logo" className="h-12 w-auto" loading="lazy" decoding="async" />
+            <img src={albaLogo} alt="Alba Enterprise Logo" className="h-12 w-auto" loading="lazy" decoding="async" />
             <div className="text-2xl font-bold text-primary">
               Alba <span className="text-foreground">Enterprises</span>
             </div>

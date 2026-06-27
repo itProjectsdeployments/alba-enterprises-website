@@ -1,5 +1,5 @@
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") ?? "info@albaenterprises.co.in";
+const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") ?? "info@albaenterprise.in";
 interface Payload {
   name: string;
   email: string;
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Alba Enterprises <onboarding@resend.dev>",
+        from: "Alba Enterprise <onboarding@resend.dev>",
         to: [ADMIN_EMAIL],
         subject: `New Contact Query from ${name}`,
         html,

@@ -16,13 +16,13 @@ const About = () => {
       icon: Target,
       image: missionVisual,
       title: "Mission",
-      description: "To bridge the gap between Indian talent and European opportunities through reliable, ethical, and efficient recruitment services.",
+      description: "To bridge the gap between skilled Indian professionals and international employers through ethical manpower consultancy, staffing solutions and overseas recruitment services.",
     },
     {
       icon: Eye,
       image: visionVisual,
       title: "Vision",
-      description: "To become the most trusted international recruitment partner, known for quality placements and exceptional service.",
+      description: "To become the world's most trusted international recruitment partner delivering high-quality manpower solutions and successful global placements.",
     },
     {
       icon: Heart,
@@ -53,9 +53,10 @@ const About = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="About Alba Enterprises — Trusted Recruitment Partner"
-        description="Learn about Alba Enterprises — our mission, vision and values as a leading international recruitment partner connecting Indian talent with global opportunities."
-        path="/about"
+        title="About Alba Enterprise | International Recruitment Partner & Manpower Consultancy"
+
+      description="Learn about Alba Enterprise, a trusted international recruitment partner and manpower 
+      consultancy connecting skilled Indian professionals with employers across Europe through ethical staffing and overseas recruitment services."
       />
       <Navbar />
       
@@ -63,7 +64,7 @@ const About = () => {
         {/* Hero Section */}
         <section className="relative text-primary-foreground py-20 overflow-hidden">
           <div className="absolute inset-0">
-            <img src={aboutHeroImage} alt="" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
+            <img src={aboutHeroImage} alt="Alba Enterprise international recruitment partner helping Indian professionals find overseas jobs" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50" />
           </div>
           <div className="container mx-auto px-4 relative z-10">
@@ -73,9 +74,9 @@ const About = () => {
               transition={{ duration: 0.6 }}
               className="text-center max-w-3xl mx-auto"
             >
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">About Alba Enterprises</h1>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">About Alba Enterprise</h1>
               <p className="text-lg opacity-90">
-                Your trusted partner in international recruitment since 2013
+                Your trusted international recruitment partner and manpower consultancy connecting skilled Indian professionals with employers across Europe since 2013.
               </p>
             </motion.div>
           </div>
@@ -95,19 +96,16 @@ const About = () => {
                 <h2 className="text-3xl md:text-4xl font-bold mb-6 text-primary">Our Story</h2>
                 <div className="space-y-4 text-lg text-muted-foreground text-left bg-card p-8 rounded-xl shadow-lg border">
                   <p>
-                    Founded in 2013 by Azam Ali Khan, Alba Enterprises began with a simple yet powerful vision: 
-                    to create meaningful employment opportunities by connecting skilled Indian professionals with 
-                    European companies seeking quality talent.
+                    Founded in 2013 by Azam Ali Khan, Alba Enterprise was established with a clear vision of becoming a trusted international recruitment partner for employers and job seekers. 
+                    Our mission is to connect skilled Indian professionals with genuine overseas employment opportunities across Europe through ethical recruitment and manpower consultancy services.
                   </p>
                   <p>
-                    Over the past decade, we have evolved into a comprehensive manpower consultancy, specializing 
-                    in international recruitment services. Our deep understanding of both Indian talent pools and 
-                    European employment requirements has enabled us to facilitate thousands of successful placements.
+                    Over the past decade, Alba Enterprise has grown into a leading manpower consultancy and international staffing agency.
+                    Our deep understanding of European labour markets and Indian talent enables us to provide reliable recruitment, visa guidance and workforce solutions for employers and candidates alike.
                   </p>
                   <p>
-                    Today, Alba Enterprises stands as a trusted name in the recruitment industry, known for our 
-                    integrity, professionalism, and commitment to excellence. We don't just place candidates; we 
-                    build lasting partnerships and create life-changing opportunities.
+                    Today, Alba Enterprise is recognised as a trusted international recruitment partner known for integrity, professionalism and long-term client relationships. 
+                    We don't simply recruit candidates—we help businesses build skilled teams while creating life-changing overseas career opportunities.
                   </p>
                 </div>
               </motion.div>
@@ -163,7 +161,7 @@ const About = () => {
                 transition={{ duration: 0.6 }}
                 className="bg-card p-8 rounded-xl shadow-lg border"
               >
-                <h2 className="text-3xl font-bold mb-6 text-primary">Why European Companies Trust Us</h2>
+                <h2 className="text-3xl font-bold mb-6 text-primary">Why European Companies Trust Alba Enterprise</h2>
                 <div className="space-y-4">
                   {whyEuropeanCompanies.map((reason, index) => (
                     <motion.div 
@@ -188,7 +186,7 @@ const About = () => {
                 transition={{ duration: 0.6 }}
                 className="bg-card p-8 rounded-xl shadow-lg border"
               >
-                <h2 className="text-3xl font-bold mb-6 text-primary">Why Indian Candidates Choose Us</h2>
+                <h2 className="text-3xl font-bold mb-6 text-primary">Why Indian Professionals Choose Alba Enterprise</h2>
                 <div className="space-y-4">
                   {whyIndianCandidates.map((reason, index) => (
                     <motion.div 
@@ -221,14 +219,14 @@ const About = () => {
             >
               <img
                 src={directorImage}
-                alt="Azam Ali Khan"
+                alt="Azam Ali Khan, Founder and Director of Alba Enterprise International Recruitment Agency"
                 className="w-48 h-48 rounded-full mx-auto mb-6 shadow-xl object-cover"
                loading="lazy" decoding="async" />
               <h3 className="text-2xl font-bold mb-2">Azam Ali Khan</h3>
-              <p className="text-lg text-primary font-semibold mb-4">Founder & Director</p>
+              <p className="text-lg text-primary font-semibold mb-4">Founder & Director – International Recruitment Partner</p>
               <p className="text-muted-foreground text-lg">
                 "Our success is measured not just in placements made, but in lives transformed 
-                and dreams realized. At Alba Enterprises, we are committed to maintaining the 
+                and dreams realized. At Alba Enterprise, we are committed to maintaining the 
                 highest standards of service and integrity in everything we do."
               </p>
             </motion.div>

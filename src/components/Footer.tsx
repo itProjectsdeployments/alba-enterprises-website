@@ -18,7 +18,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div>
-            <h3 className="text-xl font-bold mb-4">Alba Enterprises</h3>
+            <h3 className="text-xl font-bold mb-4">Alba Enterprise</h3>
             <p className="text-sm opacity-90 mb-4">
               Leading manpower consultancy & international recruitment agency
               with 10+ years of excellence.
@@ -124,20 +124,20 @@ const Footer = () => {
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 flex-shrink-0" />
                 <a
-                  href="tel:+919599591769"
+                  href="tel:+91918527881258"
                   className="hover:text-accent transition-colors"
                 >
-                  +91 9599591769
+                  +91 918527881258
                 </a>
               </li>
 
               <li className="flex items-center gap-2">
                 <Mail className="w-4 h-4 flex-shrink-0" />
                 <a
-                  href="mailto:info@albaenterprises.co.in"
+                  href="mailto:info@albaenterprise.in"
                   className="hover:text-accent transition-colors"
                 >
-                  info@albaenterprises.co.in
+                  info@albaenterprise.in
                 </a>
               </li>
             </ul>
@@ -145,7 +145,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-primary-foreground/20 mt-8 pt-8 text-center text-sm">
-          <p>© {currentYear} Alba Enterprises. All rights reserved.</p>
+          <p>© {currentYear} Alba Enterprise. All rights reserved.</p>
         </div>
       </div>
     </footer>

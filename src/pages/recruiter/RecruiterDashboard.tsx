@@ -73,7 +73,7 @@ const RecruiterDashboard = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <SEO title="Recruiter Dashboard | Alba Enterprises" description="Submit and track your manpower hiring requirements." path="/recruiter/dashboard" />
+      <SEO title="Recruiter Dashboard | Alba Enterprise" description="Submit and track your manpower hiring requirements." path="/recruiter/dashboard" />
       <Navbar />
       <main className="flex-1 pt-24 pb-16 container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">

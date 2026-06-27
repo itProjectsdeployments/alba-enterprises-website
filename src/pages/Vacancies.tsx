@@ -117,8 +117,8 @@ const Vacancies = () => {
     employmentType: "FULL_TIME",
     hiringOrganization: {
       "@type": "Organization",
-      name: "Alba Enterprises",
-      sameAs: "https://albaenterprises.co.in",
+      name: "Alba Enterprise",
+      sameAs: "https://albaenterprise.in",
     },
     jobLocation: {
       "@type": "Place",
@@ -137,8 +137,8 @@ const Vacancies = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Job Vacancies — International Careers | Alba Enterprises"
-        description="Explore open job vacancies across Europe, the Gulf and beyond. Apply for skilled and unskilled roles with trusted global employers via Alba Enterprises."
+        title="Job Vacancies — International Careers | Alba Enterprise"
+        description="Explore open job vacancies across Europe, the Gulf and beyond. Apply for skilled and unskilled roles with trusted global employers via Alba Enterprise."
         path="/vacancies"
         jsonLd={jobPostingsLd.length ? jobPostingsLd : undefined}
       />
@@ -148,7 +148,11 @@ const Vacancies = () => {
         {/* Hero Section */}
         <section className="relative text-primary-foreground py-20 overflow-hidden">
           <div className="absolute inset-0">
-            <img src={heroImage} alt="" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
+            <img src={heroImage}
+              alt="International job vacancies and overseas recruitment opportunities by Alba Enterprise"
+              className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"/>
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50" />
           </div>
           <div className="container mx-auto px-4 relative z-10">
@@ -160,7 +164,7 @@ const Vacancies = () => {
             >
               <h1 className="text-4xl md:text-5xl font-bold mb-4">Job Vacancies</h1>
               <p className="text-lg opacity-90">
-                Explore exciting career opportunities across the globe with Alba Enterprises
+                Explore exciting career opportunities across the globe with Alba Enterprise
               </p>
             </motion.div>
           </div>

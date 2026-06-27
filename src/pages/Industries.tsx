@@ -88,17 +88,16 @@ const Industries = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Industries We Serve | Alba Enterprises"
-        description="Recruitment expertise across hospitality, construction, healthcare, manufacturing, marine, oil & gas and skilled & unskilled trades worldwide."
-        path="/industries"
-      />
+        title="Industries We Serve | International Recruitment & Manpower Consultancy | Alba Enterprise"
+        description="Alba Enterprise provides international recruitment and manpower consultancy services for hospitality, construction, healthcare, manufacturing, marine, oil & gas, engineering and skilled workforce industries."
+        path="/industries"/>
       <Navbar />
       
       <div className="pt-20">
         {/* Hero Section */}
         <section className="relative text-primary-foreground py-20 overflow-hidden">
           <div className="absolute inset-0">
-            <img src={industriesHeroImage} alt="" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
+            <img src={industriesHeroImage} alt="International recruitment services across multiple industries by Alba Enterprise" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50" />
           </div>
           <div className="container mx-auto px-4 relative z-10">
@@ -108,9 +107,9 @@ const Industries = () => {
               transition={{ duration: 0.6 }}
               className="text-center max-w-3xl mx-auto"
             >
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Industries We Serve</h1>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">Industries We Recruit For</h1>
               <p className="text-lg opacity-90">
-                Connecting talent across diverse sectors for European opportunities
+                Providing international recruitment, staffing and manpower solutions across multiple industries for employers and skilled professionals worldwide.
               </p>
             </motion.div>
           </div>
@@ -134,7 +133,25 @@ const Industries = () => {
                     <div className="h-48 overflow-hidden relative">
                       <img 
                         src={industry.image} 
-                        alt={industry.title}
+                        alt={
+                        industry.title === "Hospitality"
+                        ? "Hospitality recruitment services"
+                        : industry.title === "Construction"
+                        ? "Construction manpower recruitment"
+                        : industry.title === "Mechanical"
+                        ? "Mechanical engineering recruitment"
+                        : industry.title === "Manufacturing"
+                        ? "Manufacturing workforce recruitment"
+                        : industry.title === "Onshore/Offshore"
+                        ? "Onshore offshore manpower services"
+                        : industry.title === "Marine"
+                        ? "Marine recruitment services"
+                        : industry.title === "Oil & Gas"
+                        ? "Oil and gas recruitment"
+                        : industry.title === "Healthcare"
+                        ? "Healthcare recruitment services"
+                        : "Skilled and unskilled manpower recruitment"
+                    }
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                        loading="lazy" decoding="async" />
                       <div className="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -150,7 +167,7 @@ const Industries = () => {
                   
                   <div className="space-y-2">
                     <p className="text-sm font-semibold text-primary mb-2">
-                      Key Roles:
+                      Popular Job Roles:
                     </p>
                     <ul className="space-y-1">
                       {industry.roles.map((role, idx) => (
@@ -182,12 +199,10 @@ const Industries = () => {
               transition={{ duration: 0.6 }}
               className="text-center max-w-3xl mx-auto"
             >
-              <h2 className="text-3xl font-bold mb-6 text-primary-foreground">Our Industry Expertise</h2>
+              <h2 className="text-3xl font-bold mb-6 text-primary-foreground">International Recruitment Expertise Across Industries</h2>
               <p className="text-lg text-primary-foreground/90 mb-8">
-                With over a decade of experience, we have successfully placed professionals 
-                across all major industries in European countries. Our deep understanding of 
-                industry-specific requirements ensures that we match the right talent with 
-                the right opportunities.
+                With over a decade of international recruitment experience, Alba Enterprise has successfully supplied skilled manpower, engineers, technicians, healthcare professionals, 
+                hospitality staff and industrial workers to employers across Europe and other international markets.
               </p>
               
               <div className="grid md:grid-cols-3 gap-8 mt-12">
@@ -233,21 +248,21 @@ const Industries = () => {
               </div>
               <div className="relative z-10">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Looking for Talent in Your Industry?
+                Need Skilled Manpower for Your Industry?
               </h2>
               <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-                Whether you're hiring or seeking opportunities, we have the expertise 
-                to connect you with the right match in your industry.
+                Whether you need construction workers, healthcare professionals, engineers, hospitality staff, technicians 
+                or skilled manpower, Alba Enterprise can help you recruit qualified candidates for international projects.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a
-                  href="mailto:etalba87@gmail.com"
+                  href="mailto:info@albaenterprise.in"
                   className="inline-flex items-center justify-center h-11 px-8 rounded-md bg-background text-foreground hover:bg-background/90 transition-colors"
                 >
                   Discuss Your Requirements
                 </a>
                 <a
-                  href="https://wa.me/919599591769"
+                  href="https://wa.me/918527881258"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center h-11 px-8 rounded-md border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary transition-colors"

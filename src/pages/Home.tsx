@@ -36,12 +36,12 @@ const Home = () => {
     {
       name: "Sarah Johnson",
       role: "HR Manager, Tech Corp Europe",
-      text: "Alba Enterprises provided us with highly skilled professionals. Their recruitment process is thorough and efficient.",
+      text: "Alba Enterprise provided us with highly skilled professionals. Their recruitment process is thorough and efficient.",
     },
     {
       name: "Rajesh Kumar",
       role: "Hospitality Professional",
-      text: "Thanks to Alba Enterprises, I'm now working in Germany. They handled everything from visa to documentation perfectly.",
+      text: "Thanks to Alba Enterprise, I'm now working in Germany. They handled everything from visa to documentation perfectly.",
     },
     {
       name: "Michael Brown",
@@ -53,18 +53,18 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Alba Enterprises — International Recruitment & Visa Services"
-        description="Alba Enterprises connects skilled Indian talent with global employers. Recruitment, visa, ticketing and education services across Europe and the Gulf."
+        title="International Recruitment Agency | Manpower Consultancy | Alba Enterprise"
+        description="Alba Enterprise is a leading manpower consultancy and international recruitment agency providing staffing solutions, overseas jobs, Europe jobs, visa assistance and manpower services."
         path="/"
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "Organization",
-          name: "Alba Enterprises",
-          url: "https://albaenterprises.co.in",
-          logo: "https://albaenterprises.co.in/og-image.jpg",
+          name: "Alba Enterprise",
+          url: "https://albaenterprise.in",
+          logo: "https://albaenterprise.in/og-image.jpg",
           contactPoint: {
             "@type": "ContactPoint",
-            telephone: "+91-9599591769",
+            telephone: "+918527881258",
             contactType: "customer service",
             email: "etalba87@gmail.com",
           },
@@ -84,14 +84,16 @@ const Home = () => {
               transition={{ duration: 0.6 }}
             >
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-                Connecting{" "}
-                <span className="text-primary">Talent</span>{" "}
-                with{" "}
-                <span className="text-accent">Opportunity</span>
+              Leading{" "}
+              <span className="text-primary">
+              International Recruitment Agency </span>{" "} for{" "}
+              <span className="text-accent">
+              Global Manpower Solutions
+              </span>
               </h1>
               <p className="text-lg text-muted-foreground mb-8">
-                Premier manpower consultancy & international recruitment agency. 
-                Specializing in European placements with 10+ years of excellence.
+                Premier manpower consultancy and staffing agency helping employers hire skilled Indian professionals for Europe and overseas jobs. 
+                Alba  Enterprise provides international recruitment, manpower services, visa guidance and workforce solutions backed by over 10 years of experience.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button size="lg" asChild>
@@ -114,7 +116,7 @@ const Home = () => {
             >
               <img
                 src={heroImage}
-                alt="Professional recruitment services"
+                alt="International recruitment agency providing manpower consultancy and staffing services"
                 className="rounded-lg shadow-2xl"
                loading="lazy" decoding="async" />
             </motion.div>
@@ -167,13 +169,11 @@ const Home = () => {
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Meet Our Director</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Meet Our Director of International Recruitment</h2>
               <h3 className="text-2xl text-primary font-semibold mb-4">Azam Ali Khan</h3>
               <p className="text-lg text-muted-foreground mb-6">
-                With over 10 years of expertise in international recruitment, Azam Ali Khan 
-                has built Alba Enterprises into a trusted bridge between Indian talent and 
-                European opportunities. His vision and dedication have helped thousands of 
-                professionals realize their international career dreams.
+                With over 10 years of experience in international recruitment and manpower consultancy, Azam Ali Khan has helped employers across Europe recruit skilled Indian professionals. 
+                His expertise in overseas recruitment, staffing solutions and workforce management has enabled thousands of candidates to build successful international careers.
               </p>
               <Button asChild>
                 <Link to="/about">Learn More About Us</Link>
@@ -194,11 +194,11 @@ const Home = () => {
               transition={{ duration: 0.6 }}
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                Connecting Cultures, Building Futures
+                Connecting Global Employers with Skilled Indian Talent
               </h2>
               <p className="text-lg text-muted-foreground mb-6">
-                We bring together the best of both worlds - European opportunities and Indian talent. 
-                Our team works tirelessly to ensure perfect matches that benefit both employers and employees.
+                As a trusted international staffing agency and manpower consultancy, Alba Enterprise connects skilled workers with employers across Europe. 
+                We simplify overseas recruitment through candidate screening, documentation, visa guidance and complete manpower services.
               </p>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
@@ -316,11 +316,11 @@ const Home = () => {
               >
                 <img
                   src={image}
-                  alt={`Gallery image ${index + 1}`}
+                  alt={`International recruitment event ${index + 1} by Alba Enterprise`}
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                  loading="lazy" decoding="async" />
                 <div className="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-6">
-                  <p className="text-primary-foreground font-semibold">Alba Enterprises</p>
+                  <p className="text-primary-foreground font-semibold">Alba Enterprise</p>
                 </div>
               </motion.div>
             ))}
@@ -338,16 +338,16 @@ const Home = () => {
             transition={{ duration: 0.5 }}
             className="bg-card border rounded-2xl p-8 shadow-lg"
           >
-            <h3 className="text-2xl font-bold mb-3">Looking to hire skilled manpower from India?</h3>
+            <h3 className="text-2xl font-bold mb-3">Looking to Hire Skilled Manpower Through an International Recruitment Agency?</h3>
             <p className="text-muted-foreground mb-6">
-              Submit your hiring requirements and our team will source pre-vetted candidates for your roles.
-            </p>
+              Submit your hiring requirements and our international recruitment team will source qualified manpower, skilled workers and workforce solutions tailored to your business needs.
+              </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button asChild size="lg">
                 <Link to="/register?role=recruiter">Submit Hiring Requirement</Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link to="/contact">Contact Alba</Link>
+                <Link to="/contact">Contact Alba Enterprise</Link>
               </Button>
             </div>
           </motion.div>
@@ -359,9 +359,9 @@ const Home = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="bg-card border rounded-2xl p-8 shadow-lg"
           >
-            <h3 className="text-2xl font-bold mb-3">Looking for international career opportunities?</h3>
+            <h3 className="text-2xl font-bold mb-3">Looking for Europe Jobs and Overseas Employment?</h3>
             <p className="text-muted-foreground mb-6">
-              Browse open vacancies across Europe and the Gulf, and apply with your CV in minutes.
+              Browse verified overseas jobs across Europe and apply through our trusted manpower consultancy and international recruitment agency.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button asChild size="lg">
@@ -389,11 +389,11 @@ const Home = () => {
             transition={{ duration: 0.6 }}
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Ready to Take the Next Step?
+              Ready to Start Your International Recruitment Journey?
             </h2>
             <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-              Whether you're looking to hire skilled professionals or seeking opportunities 
-              in Europe, we're here to help you succeed.
+              Whether you're an employer seeking skilled manpower or a candidate searching for Europe jobs, 
+              Alba Enterprise is your trusted international recruitment agency and staffing partner.
             </p>
             <Button size="lg" variant="secondary" asChild>
               <Link to="/contact">Get Started Today</Link>

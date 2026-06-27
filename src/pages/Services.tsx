@@ -15,21 +15,21 @@ const Services = () => {
     {
       icon: Users,
       image: recruitmentImage,
-      title: "Recruitment Services",
-      description: "We ensure the best candidates are hired for your workforce needs.",
+      title: "International Recruitment & Staffing Services",
+      description: "We help employers recruit skilled Indian professionals through our international recruitment agency and manpower consultancy, delivering reliable staffing solutions for overseas businesses.",
       features: [
         "Comprehensive candidate screening",
         "Skills assessment and verification",
         "Background checks",
         "Interview coordination",
-        "Placement support",
+        "Overseas placement support",
       ],
     },
     {
       icon: FileCheck,
       image: visaImage,
-      title: "Visa / Stamping Services",
-      description: "Full assistance for visa stamping formalities for multiple countries.",
+      title: "Work Visa & Visa Stamping Services",
+      description: "Complete work visa, visa stamping and documentation support for professionals travelling abroad for employment opportunities.",
       features: [
         "Work visa processing",
         "Document preparation",
@@ -41,8 +41,8 @@ const Services = () => {
     {
       icon: Hotel,
       image: bookingImage,
-      title: "Air Ticket / Hotel Booking",
-      description: "Online air-ticketing and hotel booking with competitive pricing.",
+      title: "Air Ticket & Hotel Booking Services",
+      description: "Affordable international air ticket booking and hotel reservations for candidates travelling overseas for employment and business purposes.",
       features: [
         "Best price guarantee",
         "Multiple airline options",
@@ -55,7 +55,7 @@ const Services = () => {
       icon: GraduationCap,
       image: educationImage,
       title: "Education Services",
-      description: "Providing quality global learning opportunities.",
+      description: "Helping students pursue international education through university admissions, visa guidance and overseas study support.",
       features: [
         "University selection guidance",
         "Application assistance",
@@ -69,17 +69,18 @@ const Services = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Recruitment, Visa, Ticketing & Education Services | Alba Enterprises"
-        description="Comprehensive recruitment, visa stamping, air ticketing, hotel booking and education services tailored to your global workforce and travel needs."
-        path="/services"
-      />
+        title="International Recruitment, Visa & Manpower Services | Alba Enterprise"
+
+        description="Alba Enterprise provides international recruitment, manpower consultancy, staffing solutions, work visa assistance, 
+        air ticket booking, hotel reservations and overseas education services for global employers and candidates."
+        path="/services"/>
       <Navbar />
       
       <div className="pt-20">
         {/* Hero Section */}
         <section className="relative text-primary-foreground py-20 overflow-hidden">
           <div className="absolute inset-0">
-            <img src={servicesHeroImage} alt="" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
+            <img src={servicesHeroImage} alt="International recruitment and manpower consultancy services by Alba Enterprise" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50" />
           </div>
           <div className="container mx-auto px-4 relative z-10">
@@ -89,9 +90,9 @@ const Services = () => {
               transition={{ duration: 0.6 }}
               className="text-center max-w-3xl mx-auto"
             >
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Our Services</h1>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">International Recruitment & Manpower Services</h1>
               <p className="text-lg opacity-90">
-                Comprehensive solutions for all your recruitment and travel needs
+                Comprehensive manpower consultancy, international recruitment, staffing, visa assistance, travel and education services for employers and job seekers worldwide.
               </p>
             </motion.div>
           </div>
@@ -134,7 +135,15 @@ const Services = () => {
                     <div className="rounded-lg overflow-hidden shadow-xl">
                       <img 
                         src={service.image} 
-                        alt={service.title}
+                        alt={
+                          service.title === "International Recruitment & Staffing Services"
+                            ? "International recruitment and manpower consultancy services"
+                            : service.title === "Work Visa & Visa Stamping Services"
+                            ? "Work visa and visa stamping assistance"
+                            : service.title === "Air Ticket & Hotel Booking Services"
+                            ? "International air ticket and hotel booking services"
+                            : "International education consultancy services" 
+                          }
                         className="w-full h-full object-cover aspect-square"
                        loading="lazy" decoding="async" />
                     </div>
@@ -156,15 +165,15 @@ const Services = () => {
               className="text-center max-w-3xl mx-auto"
             >
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Need a Custom Solution?
+                Need International Recruitment or Manpower Services?
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
-                We offer tailored services to meet your specific requirements. 
-                Contact us to discuss how we can help you.
+                Whether you need skilled manpower, international recruitment, staffing solutions, 
+                work visa assistance or overseas education guidance, Alba Enterprise is here to help.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a
-                  href="tel:+919599591769"
+                  href="tel:+918527881258"
                   className="inline-flex items-center justify-center h-11 px-8 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
                   Call Us Now
