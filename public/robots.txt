@@ -4,4 +4,4 @@ Disallow: /admin/
 Disallow: /login
 Disallow: /register
 
-Sitemap: https://albaenterprises.co.in/sitemap.xml
+Sitemap: https://albaenterprise.in/sitemap.xml
