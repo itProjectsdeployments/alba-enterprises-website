@@ -7,6 +7,8 @@ interface SEOProps {
   image?: string;
   type?: string;
   jsonLd?: Record<string, any> | Record<string, any>[];
+  /** Keep internal pages (portals, dashboards) out of search results. */
+  noindex?: boolean;
 }
 
 const SITE_URL = "https://www.albaenterprise.in";
@@ -19,6 +21,7 @@ const SEO = ({
   image,
   type = "website",
   jsonLd,
+  noindex = false,
 }: SEOProps) => {
   const url = `${SITE_URL}${path}`;
   const ogImage = image || DEFAULT_IMAGE;
@@ -35,7 +38,7 @@ const SEO = ({
         content="hotel recruitment agency India, hospitality recruitment, hotel staffing, hotel jobs India, chef jobs, housekeeping jobs, front office jobs, F&B recruitment, HR consultancy, visa documentation, Alba Enterprise"
       />
 
-      <meta name="robots" content="index,follow" />
+      <meta name="robots" content={noindex ? "noindex,nofollow" : "index,follow"} />
 
       <meta name="author" content="Alba Enterprise" />
 

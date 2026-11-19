@@ -118,6 +118,7 @@ const AdminJobs = () => {
             <p className="text-muted-foreground">Create, edit and remove job postings.</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" asChild><Link to="/hr">HR Portal</Link></Button>
             <Button variant="outline" asChild><Link to="/admin/enquiries">Enquiries</Link></Button>
             <Button variant="outline" asChild><Link to="/admin/applications">Applications</Link></Button>
             <Dialog open={open} onOpenChange={setOpen}>

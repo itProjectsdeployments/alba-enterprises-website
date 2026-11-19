@@ -25,6 +25,7 @@ import AdminJobs from "./pages/admin/AdminJobs";
 import AdminApplications from "./pages/admin/AdminApplications";
 import AdminEnquiries from "./pages/admin/AdminEnquiries";
 import RecruiterDashboard from "./pages/recruiter/RecruiterDashboard";
+import HrPortal from "./pages/hr/HrPortal";
 
 import NotFound from "./pages/NotFound";
 
@@ -60,7 +61,7 @@ const App = () => (
               <Route
                 path="/admin/jobs"
                 element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
+                  <ProtectedRoute allowedRoles={["admin", "hr"]}>
                     <AdminJobs />
                   </ProtectedRoute>
                 }
@@ -69,7 +70,7 @@ const App = () => (
               <Route
                 path="/admin/applications"
                 element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
+                  <ProtectedRoute allowedRoles={["admin", "hr"]}>
                     <AdminApplications />
                   </ProtectedRoute>
                 }
@@ -78,8 +79,17 @@ const App = () => (
               <Route
                 path="/admin/enquiries"
                 element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
+                  <ProtectedRoute allowedRoles={["admin", "hr"]}>
                     <AdminEnquiries />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/hr"
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "hr"]}>
+                    <HrPortal />
                   </ProtectedRoute>
                 }
               />

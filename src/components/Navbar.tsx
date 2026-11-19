@@ -33,7 +33,7 @@ const Navbar = () => {
 
   const role = profile?.role;
   const dashboardPath =
-    role === "admin" ? "/admin/enquiries" : role === "recruiter" ? "/recruiter/dashboard" : null;
+    role === "admin" || role === "hr" ? "/hr" : role === "recruiter" ? "/recruiter/dashboard" : null;
 
   const hireStaffPath = role === "recruiter" ? "/recruiter/dashboard" : "/hire-staff";
 

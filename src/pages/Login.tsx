@@ -42,7 +42,7 @@ const Login = () => {
     toast({ title: "Welcome back!" });
 
     const effectiveRole = role === "worker" ? "candidate" : role;
-    if (effectiveRole === "admin") navigate("/admin/jobs");
+    if (effectiveRole === "admin" || effectiveRole === "hr") navigate("/hr");
     else if (effectiveRole === "recruiter") navigate("/recruiter/dashboard");
     else navigate("/");
   };

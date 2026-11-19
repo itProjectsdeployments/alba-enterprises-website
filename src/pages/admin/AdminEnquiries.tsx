@@ -97,6 +97,7 @@ const AdminEnquiries = () => {
             <p className="text-muted-foreground">Hiring requirements, CVs and other enquiries from the website.</p>
           </div>
           <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" asChild><Link to="/hr">HR Portal</Link></Button>
             <Button variant="outline" asChild><Link to="/admin/jobs">Vacancies</Link></Button>
             <Button variant="outline" asChild><Link to="/admin/applications">Applications</Link></Button>
             <Button onClick={exportCsv} disabled={!filtered.length}><Download className="w-4 h-4 mr-2" /> Export CSV</Button>
