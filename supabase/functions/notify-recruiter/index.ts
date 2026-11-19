@@ -23,7 +23,12 @@ serve(async (req) => {
       location,
       salary_range,
       skills_required,
+      skill_required,
     } = await req.json();
+
+    const esc = (v: unknown) =>
+      String(v ?? "N/A").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const skills = skills_required ?? skill_required;
 
     const { data, error } = await resend.emails.send({
       from: "Alba Enterprise <onboarding@resend.dev>",
@@ -31,7 +36,7 @@ serve(async (req) => {
       // 👇 Change this to your recruiter email
       to: ["etalba87@gmail.com"],
 
-      subject: `New Hiring Requirement - ${job_title}`,
+      subject: `New Hiring Requirement - ${String(job_title ?? "").slice(0, 100)}`,
 
       html: `
         <h2>New Hire Talent Request</h2>
@@ -39,27 +44,27 @@ serve(async (req) => {
         <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif;">
           <tr>
             <td><strong>Job Title</strong></td>
-            <td>${job_title}</td>
+            <td>${esc(job_title)}</td>
           </tr>
 
           <tr>
             <td><strong>Number Required</strong></td>
-            <td>${number_required}</td>
+            <td>${esc(number_required)}</td>
           </tr>
 
           <tr>
             <td><strong>Location</strong></td>
-            <td>${location}</td>
+            <td>${esc(location)}</td>
           </tr>
 
           <tr>
             <td><strong>Salary Range</strong></td>
-            <td>${salary_range}</td>
+            <td>${esc(salary_range)}</td>
           </tr>
 
           <tr>
             <td><strong>Skills Required</strong></td>
-            <td>${skills_required}</td>
+            <td>${esc(skills)}</td>
           </tr>
         </table>
 
@@ -67,7 +72,7 @@ serve(async (req) => {
 
         <p>
           This hiring requirement was submitted from the
-          <strong>Hire Talent</strong> page of the Alba Enterprise website.
+          <strong>Employer Dashboard</strong> of the Alba Enterprise website.
         </p>
       `,
     });

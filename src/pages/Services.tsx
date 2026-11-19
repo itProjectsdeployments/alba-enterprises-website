@@ -1,191 +1,235 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, FileCheck, Hotel, GraduationCap, CheckCircle } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { Users, Briefcase, FileCheck, FileSignature, Plane, CheckCircle, type LucideIcon } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import SEO from "@/components/SEO";
 import Footer from "@/components/Footer";
 import Chatbot from "@/components/Chatbot";
-import recruitmentImage from "@/assets/service-recruitment.jpg";
+import PageHero from "@/components/PageHero";
+import ScopeNotice from "@/components/ScopeNotice";
+import { Button } from "@/components/ui/button";
+import { SITE } from "@/lib/site";
+import recruitmentImage from "@/assets/industry-hospitality.jpg";
+import consultancyImage from "@/assets/home-team-collaboration.jpg";
 import visaImage from "@/assets/service-visa.jpg";
+import attestationImage from "@/assets/process-attestation.jpg";
 import bookingImage from "@/assets/service-booking.jpg";
-import educationImage from "@/assets/service-education.jpg";
 import servicesHeroImage from "@/assets/services-hero.jpg";
 
+interface Service {
+  id: string;
+  icon: LucideIcon;
+  image: string;
+  imageAlt: string;
+  label: string;
+  title: string;
+  description: string;
+  features: string[];
+  note?: string;
+  cta: { text: string; to: string };
+}
+
 const Services = () => {
-  const services = [
+  const { hash } = useLocation();
+
+  useEffect(() => {
+    if (hash) {
+      const el = document.getElementById(hash.slice(1));
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+    }
+  }, [hash]);
+
+  const services: Service[] = [
     {
+      id: "recruitment",
       icon: Users,
       image: recruitmentImage,
-      title: "International Recruitment & Staffing Services",
-      description: "We help employers recruit skilled Indian professionals through our international recruitment agency and manpower consultancy, delivering reliable staffing solutions for overseas businesses.",
+      imageAlt: "Hotel kitchen and service staff",
+      label: "Core service · India",
+      title: "Hotel & Hospitality Recruitment",
+      description:
+        "Our core business. We recruit for hotels, resorts, restaurants, banquets and hospitality groups across India, for single positions, bulk hiring and new property openings.",
       features: [
-        "Comprehensive candidate screening",
-        "Skills assessment and verification",
-        "Background checks",
-        "Interview coordination",
-        "Overseas placement support",
+        "Front Office, Housekeeping, Laundry, F&B Production, F&B Service and Maintenance",
+        "Junior, supervisory, managerial and senior-level hiring",
+        "Requirement briefing, sourcing and pre-screening",
+        "Interview scheduling and candidate coordination",
+        "Offer, joining and post-joining follow-up",
       ],
+      cta: { text: "Submit a Hiring Requirement", to: "/hire-staff" },
     },
     {
+      id: "hr-consultancy",
+      icon: Briefcase,
+      image: consultancyImage,
+      imageAlt: "HR consultants in a planning meeting",
+      label: "Advisory · India & international",
+      title: "HR Consultancy",
+      description:
+        "Advisory support for businesses in India and abroad that want stronger HR foundations. This is a consulting service: we advise on process and documentation, and it does not include candidate sourcing or placement outside India.",
+      features: [
+        "Manpower planning and organisation structure",
+        "Job descriptions and role frameworks",
+        "HR policies, employee handbooks and SOPs",
+        "Recruitment process and interview framework design",
+        "Salary benchmarking for hospitality roles in India",
+        "Onboarding and training plans",
+      ],
+      cta: { text: "Discuss HR Consultancy", to: "/contact?type=hr-consultancy" },
+    },
+    {
+      id: "visa",
       icon: FileCheck,
       image: visaImage,
-      title: "Work Visa & Visa Stamping Services",
-      description: "Complete work visa, visa stamping and documentation support for professionals travelling abroad for employment opportunities.",
+      imageAlt: "Passport and visa application documents",
+      label: "Documentation support",
+      title: "Visa Guidance & Documentation Assistance",
+      description:
+        "We help individuals and businesses prepare and organise visa paperwork correctly, which reduces errors and delays in the application process.",
       features: [
-        "Work visa processing",
-        "Document preparation",
-        "Embassy liaison",
-        "Visa interview guidance",
-        "Status tracking",
+        "Visa guidance and eligibility checklists",
+        "Document preparation and review",
+        "Application form-filling assistance",
+        "Appointment scheduling support",
+        "Application status follow-up",
       ],
+      note: "We assist with documentation only. Visa decisions are made solely by the relevant embassy or consulate, and we do not arrange overseas employment.",
+      cta: { text: "Ask About Visa Documentation", to: "/contact?type=visa" },
     },
     {
-      icon: Hotel,
+      id: "attestation",
+      icon: FileSignature,
+      image: attestationImage,
+      imageAlt: "Document attestation stamps",
+      label: "Documentation support",
+      title: "Attestation & Documentation Support",
+      description:
+        "Guidance and support for getting educational, personal and commercial documents attested and ready for official use.",
+      features: [
+        "Educational certificate attestation guidance",
+        "Personal and commercial document support",
+        "Apostille process guidance",
+        "Translation coordination where required",
+      ],
+      cta: { text: "Get Documentation Help", to: "/contact?type=visa" },
+    },
+    {
+      id: "travel",
+      icon: Plane,
       image: bookingImage,
-      title: "Air Ticket & Hotel Booking Services",
-      description: "Affordable international air ticket booking and hotel reservations for candidates travelling overseas for employment and business purposes.",
+      imageAlt: "Air ticket and travel booking",
+      label: "Travel",
+      title: "Travel-Related Services",
+      description:
+        "Convenient travel arrangements for business and personal trips, including domestic and international air tickets and hotel reservations.",
       features: [
-        "Best price guarantee",
-        "Multiple airline options",
-        "Flexible booking options",
-        "Hotel reservations worldwide",
-        "Last-minute bookings",
+        "Domestic and international air ticketing",
+        "Hotel reservations",
+        "Travel insurance guidance",
+        "Itinerary assistance",
       ],
-    },
-    {
-      icon: GraduationCap,
-      image: educationImage,
-      title: "Education Services",
-      description: "Helping students pursue international education through university admissions, visa guidance and overseas study support.",
-      features: [
-        "University selection guidance",
-        "Application assistance",
-        "Admission support",
-        "Scholarship information",
-        "Student visa processing",
-      ],
+      cta: { text: "Enquire About Travel", to: "/contact?type=general" },
     },
   ];
 
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="International Recruitment, Visa & Manpower Services | Alba Enterprise"
-
-        description="Alba Enterprise provides international recruitment, manpower consultancy, staffing solutions, work visa assistance, 
-        air ticket booking, hotel reservations and overseas education services for global employers and candidates."
-        path="/services"/>
+        title="Services | Hospitality Recruitment, HR Consultancy & Visa Documentation | Alba Enterprise"
+        description="Hotel and hospitality recruitment across India, plus HR consultancy, visa guidance and documentation assistance, attestation support and travel services from Alba Enterprise."
+        path="/services"
+      />
       <Navbar />
-      
+
       <div className="pt-20">
-        {/* Hero Section */}
-        <section className="relative text-primary-foreground py-20 overflow-hidden">
-          <div className="absolute inset-0">
-            <img src={servicesHeroImage} alt="International recruitment and manpower consultancy services by Alba Enterprise" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50" />
-          </div>
-          <div className="container mx-auto px-4 relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center max-w-3xl mx-auto"
-            >
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">International Recruitment & Manpower Services</h1>
-              <p className="text-lg opacity-90">
-                Comprehensive manpower consultancy, international recruitment, staffing, visa assistance, travel and education services for employers and job seekers worldwide.
-              </p>
-            </motion.div>
-          </div>
-        </section>
+        <PageHero
+          image={servicesHeroImage}
+          imageAlt="Alba Enterprise team at work"
+          eyebrow="Our services"
+          title="Recruitment First, Supported by Consultancy"
+          subtitle="Hospitality recruitment within India is our core business. We also offer HR consultancy and visa documentation assistance to the businesses and individuals we work with."
+        />
 
-        {/* Services Grid */}
-        <section className="py-20">
+        {/* Quick nav */}
+        <section className="border-b bg-card sticky top-20 z-30">
           <div className="container mx-auto px-4">
-            <div className="space-y-16">
-              {services.map((service, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6 }}
-                  className={`grid lg:grid-cols-2 gap-12 items-center ${
-                    index % 2 === 1 ? "lg:grid-flow-dense" : ""
-                  }`}
-                >
-                  <div className={index % 2 === 1 ? "lg:col-start-2" : ""}>
-                    <div className="bg-primary/10 p-4 rounded-lg inline-block mb-4">
-                      <service.icon className="w-12 h-12 text-primary" />
-                    </div>
-                    <h2 className="text-3xl font-bold mb-4">{service.title}</h2>
-                    <p className="text-lg text-muted-foreground mb-6">
-                      {service.description}
-                    </p>
-                    <div className="space-y-3">
-                      {service.features.map((feature, idx) => (
-                        <div key={idx} className="flex items-start gap-3">
-                          <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
-                          <p className="text-muted-foreground">{feature}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className={index % 2 === 1 ? "lg:col-start-1 lg:row-start-1" : ""}>
-                    <div className="rounded-lg overflow-hidden shadow-xl">
-                      <img 
-                        src={service.image} 
-                        alt={
-                          service.title === "International Recruitment & Staffing Services"
-                            ? "International recruitment and manpower consultancy services"
-                            : service.title === "Work Visa & Visa Stamping Services"
-                            ? "Work visa and visa stamping assistance"
-                            : service.title === "Air Ticket & Hotel Booking Services"
-                            ? "International air ticket and hotel booking services"
-                            : "International education consultancy services" 
-                          }
-                        className="w-full h-full object-cover aspect-square"
-                       loading="lazy" decoding="async" />
-                    </div>
-                  </div>
-                </motion.div>
+            <div className="flex gap-6 overflow-x-auto py-4 text-sm font-medium whitespace-nowrap">
+              {services.map((s) => (
+                <a key={s.id} href={`#${s.id}`} className="text-muted-foreground hover:text-primary transition-colors">
+                  {s.title}
+                </a>
               ))}
             </div>
           </div>
         </section>
 
-        {/* CTA Section */}
+        <section className="py-20">
+          <div className="container mx-auto px-4 space-y-20">
+            {services.map((service, index) => (
+              <motion.div
+                key={service.id}
+                id={service.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+                className="grid lg:grid-cols-2 gap-12 items-center scroll-mt-40"
+              >
+                <div className={index % 2 === 1 ? "lg:order-2" : ""}>
+                  <p className="uppercase tracking-[0.2em] text-xs font-semibold text-primary mb-3">{service.label}</p>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="bg-primary/10 p-3 rounded-lg">
+                      <service.icon className="w-7 h-7 text-primary" />
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-bold">{service.title}</h2>
+                  </div>
+                  <p className="text-lg text-muted-foreground mb-6">{service.description}</p>
+                  <ul className="space-y-3 mb-6">
+                    {service.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                        <span className="text-muted-foreground">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {service.note && (
+                    <p className="text-sm text-muted-foreground border-l-4 border-accent pl-4 mb-6">{service.note}</p>
+                  )}
+                  <Button asChild>
+                    <Link to={service.cta.to}>{service.cta.text}</Link>
+                  </Button>
+                </div>
+
+                <div className={index % 2 === 1 ? "lg:order-1" : ""}>
+                  <div className="rounded-xl overflow-hidden shadow-xl aspect-[4/3]">
+                    <img
+                      src={service.image}
+                      alt={service.imageAlt}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+            <ScopeNotice />
+          </div>
+        </section>
+
         <section className="py-16 bg-muted">
-          <div className="container mx-auto px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="text-center max-w-3xl mx-auto"
-            >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Need International Recruitment or Manpower Services?
-              </h2>
-              <p className="text-lg text-muted-foreground mb-8">
-                Whether you need skilled manpower, international recruitment, staffing solutions, 
-                work visa assistance or overseas education guidance, Alba Enterprise is here to help.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a
-                  href="tel:+918527881258"
-                  className="inline-flex items-center justify-center h-11 px-8 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                >
-                  Call Us Now
-                </a>
-                <a
-                  href="mailto:etalba87@gmail.com"
-                  className="inline-flex items-center justify-center h-11 px-8 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
-                >
-                  Email Us
-                </a>
-              </div>
-            </motion.div>
+          <div className="container mx-auto px-4 text-center max-w-3xl">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Not sure which service you need?</h2>
+            <p className="text-lg text-muted-foreground mb-8">
+              Call or WhatsApp our team and we'll point you in the right direction.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" asChild><a href={SITE.phoneHref}>Call {SITE.phoneDisplay}</a></Button>
+              <Button size="lg" variant="outline" asChild>
+                <a href={SITE.whatsappHref} target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a>
+              </Button>
+            </div>
           </div>
         </section>
       </div>

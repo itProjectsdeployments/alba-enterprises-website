@@ -98,6 +98,7 @@ const RecruiterDashboard = () => {
           location: form.location,
           salary_range: form.salary_range,
           skill_required: form.skill_required,
+          skills_required: form.skill_required,
         },
       }
     );
@@ -117,7 +118,7 @@ const RecruiterDashboard = () => {
       toast({
         title: "Requirement Submitted",
         description:
-          "Your manpower requirement has been submitted successfully.",
+          "Your hiring requirement has been submitted successfully.",
       });
     }
 
@@ -136,7 +137,7 @@ const RecruiterDashboard = () => {
     <div className="min-h-screen flex flex-col">
       <SEO
         title="Recruiter Dashboard | Alba Enterprise"
-        description="Submit and track your manpower hiring requirements."
+        description="Submit and track your hotel hiring requirements."
         path="/recruiter/dashboard"
       />
 
@@ -145,7 +146,7 @@ const RecruiterDashboard = () => {
       <main className="flex-1 pt-24 pb-16 container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">
-            Recruiter Dashboard
+            Employer Dashboard
           </h1>
 
           <Button asChild variant="outline">
@@ -159,7 +160,7 @@ const RecruiterDashboard = () => {
 
           <section className="bg-card border rounded-xl p-6">
             <h2 className="text-xl font-semibold mb-4">
-              Submit Manpower Requirement
+              Submit Hiring Requirement
             </h2>
 
             <form

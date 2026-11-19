@@ -9,7 +9,7 @@ interface SEOProps {
   jsonLd?: Record<string, any> | Record<string, any>[];
 }
 
-const SITE_URL = "https://albaenterprise.in";
+const SITE_URL = "https://www.albaenterprise.in";
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.jpg`;
 
 const SEO = ({
@@ -32,7 +32,7 @@ const SEO = ({
 
       <meta
         name="keywords"
-        content="manpower consultancy, staffing agency, international recruitment agency, overseas jobs, Europe jobs, manpower services, Alba Enterprise"
+        content="hotel recruitment agency India, hospitality recruitment, hotel staffing, hotel jobs India, chef jobs, housekeeping jobs, front office jobs, F&B recruitment, HR consultancy, visa documentation, Alba Enterprise"
       />
 
       <meta name="robots" content="index,follow" />

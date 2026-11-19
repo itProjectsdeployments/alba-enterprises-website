@@ -1,407 +1,320 @@
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Phone, Mail, MapPin, Send, Upload, Loader2, CheckCircle } from "lucide-react";
+import { Phone, Mail, MapPin, Send, Upload, Loader2, CheckCircle, MessageCircle, ArrowRight } from "lucide-react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import SEO from "@/components/SEO";
 import Footer from "@/components/Footer";
 import Chatbot from "@/components/Chatbot";
+import PageHero from "@/components/PageHero";
 import contactHeroImage from "@/assets/contact-hero.jpg";
-import { supabase } from "@/integrations/supabase/client";
-import { z } from "zod";
+import { DEPARTMENTS, SITE, formatEnquiryMessage, type EnquiryType } from "@/lib/site";
+import { submitEnquiry, uploadCv, validateCvFile } from "@/lib/enquiries";
+import SubmitFallback from "@/components/SubmitFallback";
 
 const querySchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").max(100),
-  email: z.string().email("Please enter a valid email"),
-  phone: z.string().min(10, "Please enter a valid phone number").max(20),
-  message: z.string().min(10, "Message must be at least 10 characters").max(1000),
+  name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
+  email: z.string().trim().email("Please enter a valid email"),
+  phone: z.string().trim().min(10, "Please enter a valid phone number").max(20),
+  message: z.string().trim().max(1500),
 });
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_FILE_TYPES = [
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+const TYPE_FROM_PARAM: Record<string, EnquiryType> = {
+  hiring: "Hiring Requirement",
+  "job-seeker": "Job Seeker",
+  visa: "Visa & Documentation",
+  "hr-consultancy": "HR Consultancy",
+  general: "General",
+};
+
+const TYPE_OPTIONS: { value: EnquiryType; label: string }[] = [
+  { value: "Job Seeker", label: "I'm looking for a hotel job" },
+  { value: "Hiring Requirement", label: "I want to hire staff" },
+  { value: "HR Consultancy", label: "HR consultancy" },
+  { value: "Visa & Documentation", label: "Visa guidance / documentation" },
+  { value: "General", label: "General enquiry" },
 ];
+
+const EXPERIENCE = ["Fresher", "Less than 1 year", "1–3 years", "3–5 years", "5–10 years", "10+ years"];
 
 const Contact = () => {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const [type, setType] = useState<EnquiryType>(TYPE_FROM_PARAM[searchParams.get("type") || ""] || "General");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    message: "",
-  });
+  const [formData, setFormData] = useState({ name: "", email: "", phone: "", message: "" });
+  const [seeker, setSeeker] = useState({ department: "", role: "", experience: "", currentCity: "", preferredLocation: "" });
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [fallback, setFallback] = useState<string | null>(null);
 
-  const validateFile = (file: File): string | null => {
-    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      return "Please upload a PDF or DOC file only";
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      return "File size must be less than 5MB";
-    }
-    return null;
-  };
+  useEffect(() => {
+    const t = TYPE_FROM_PARAM[searchParams.get("type") || ""];
+    if (t) setType(t);
+  }, [searchParams]);
+
+  const isSeeker = type === "Job Seeker";
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const error = validateFile(file);
-      if (error) {
-        setErrors(prev => ({ ...prev, cv: error }));
-        setCvFile(null);
-      } else {
-        setErrors(prev => ({ ...prev, cv: "" }));
-        setCvFile(file);
-      }
-    }
+    if (!file) return;
+    const error = validateCvFile(file);
+    setErrors((prev) => ({ ...prev, cv: error || "" }));
+    setCvFile(error ? null : file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrors({});
-
-    // Validate form data
+    const fieldErrors: Record<string, string> = {};
     const result = querySchema.safeParse(formData);
     if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
-        if (err.path[0]) {
-          fieldErrors[err.path[0].toString()] = err.message;
-        }
-      });
-      setErrors(fieldErrors);
-      return;
+      result.error.errors.forEach((err) => { if (err.path[0]) fieldErrors[String(err.path[0])] = err.message; });
     }
+    if (isSeeker && !seeker.department) fieldErrors.department = "Please select a department";
+    if (!isSeeker && formData.message.trim().length < 10) fieldErrors.message = "Message must be at least 10 characters";
+    if (Object.keys(fieldErrors).length) { setErrors(fieldErrors); return; }
 
+    setErrors({});
+    setFallback(null);
     setLoading(true);
-
+    const fields = isSeeker
+      ? {
+          Department: seeker.department,
+          "Role / Designation": seeker.role,
+          Experience: seeker.experience,
+          "Current City": seeker.currentCity,
+          "Preferred Location": seeker.preferredLocation,
+        }
+      : {};
     try {
-      let cvUrl = null;
+      const cvUrl = cvFile ? await uploadCv(cvFile, formData.name) : null;
+      const message = formatEnquiryMessage(type, { ...fields, ...(isSeeker && { CV: cvUrl ? "Attached" : "Not attached" }) }, formData.message);
+      await submitEnquiry({ ...formData, message, cvUrl });
 
-      // Upload CV if provided
-      if (cvFile) {
-        const fileExt = cvFile.name.split('.').pop();
-        const fileName = `query_${Date.now()}_${formData.name.replace(/\s+/g, '_')}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from("cvs")
-          .upload(fileName, cvFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage
-          .from("cvs")
-          .getPublicUrl(fileName);
-
-        cvUrl = urlData.publicUrl;
-      }
-
-    
-     // Insert query record
-      const { error: insertError } = await supabase
-      .from("queries")
-      .insert({
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      message: formData.message,
-      cv_url: cvUrl,
-  });
-
-if (insertError) throw insertError;
-
-// Send email notification
-await supabase.functions.invoke("notify-query", {
-  body: {
-    name: formData.name,
-    email: formData.email,
-    phone: formData.phone,
-    message: formData.message,
-  },
-});
-
-setSuccess(true);
-
-toast({
-  title: "Query Submitted!",
-  description: "Thank you for reaching out. We'll get back to you shortly.",
-});
-
-      // Reset form after delay
-      setTimeout(() => {
-        setSuccess(false);
-        setFormData({ name: "", email: "", phone: "", message: "" });
-        setCvFile(null);
-      }, 3000);
-
+      setSuccess(true);
+      toast({ title: "Message sent", description: "Thank you. We'll get back to you shortly." });
+      setFormData({ name: "", email: "", phone: "", message: "" });
+      setSeeker({ department: "", role: "", experience: "", currentCity: "", preferredLocation: "" });
+      setCvFile(null);
     } catch (error: any) {
       console.error("Error submitting query:", error);
-      toast({
-        title: "Submission Failed",
-        description: error.message || "Please try again later.",
-        variant: "destructive",
-      });
+      const summary = formatEnquiryMessage(type, fields, formData.message);
+      setFallback(
+        `Name: ${formData.name}\nPhone: ${formData.phone}\nEmail: ${formData.email}\n${summary}` +
+          (cvFile ? "\n\n(I will attach my CV to this message.)" : ""),
+      );
+      toast({ title: "Couldn't submit online", description: "Please send your message via WhatsApp or email below.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleWhatsApp = () => {
-    window.open("https://wa.me/918527881258", "_blank");
-  };
+  const err = (k: string) => errors[k] && <p className="text-sm text-destructive mt-1">{errors[k]}</p>;
 
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Contact Alba Enterprise | Submit Your CV"
-        description="Get in touch with Alba Enterprise. Submit your CV, ask a question or explore international career opportunities with our recruitment team."
+        title="Contact Alba Enterprise | Hospitality Recruitment in India"
+        description="Contact Alba Enterprise in Faridabad for hotel staff hiring, hotel job opportunities in India, HR consultancy or visa documentation assistance."
         path="/contact"
       />
       <Navbar />
-      
-      <div className="pt-20">
-        {/* Hero Section */}
-        <section className="relative text-primary-foreground py-20 overflow-hidden">
-          <div className="absolute inset-0">
-            <img src={contactHeroImage}
-              alt="Contact Alba Enterprise for overseas recruitment services, international job placements and manpower consultancy"
-              className="w-full h-full object-cover"
-              loading="lazy"
-              decoding="async" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50" />
-          </div>
-          <div className="container mx-auto px-4 relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center max-w-3xl mx-auto"
-            >
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Get In Touch</h1>
-              <p className="text-lg opacity-90">
-                Have questions? We're here to help you with your recruitment needs. Submit your CV for future opportunities!
-              </p>
-            </motion.div>
-          </div>
-        </section>
 
-        {/* Contact Info & Form */}
+      <div className="pt-20">
+        <PageHero
+          image={contactHeroImage}
+          imageAlt="Alba Enterprise office reception"
+          eyebrow="Contact us"
+          title="Let's Talk"
+          subtitle="Hiring for your hotel, looking for your next hospitality role, or need documentation help? Send us a message and the right person will get back to you."
+        />
+
         <section className="py-16">
           <div className="container mx-auto px-4">
-            <div className="grid lg:grid-cols-2 gap-12">
-              {/* Contact Information */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-              >
-                <h2 className="text-3xl font-bold mb-8">Contact Information</h2>
-                
+            <div className="grid lg:grid-cols-[2fr_3fr] gap-12">
+              {/* Info */}
+              <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
+                <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
                 <div className="space-y-6 mb-8">
                   <div className="flex items-start gap-4">
-                    <div className="bg-primary/10 p-3 rounded-lg">
-                      <MapPin className="w-6 h-6 text-primary" />
-                    </div>
+                    <div className="bg-primary/10 p-3 rounded-lg"><MapPin className="w-5 h-5 text-primary" /></div>
                     <div>
-                      <h3 className="font-semibold mb-1">Address</h3>
-                      <p className="text-muted-foreground">
-                        Office No. 827, 8th Floor, Puri Business Hub,<br />
-                        Sector 81, Faridabad
-                      </p>
+                      <h3 className="font-semibold mb-1">Office</h3>
+                      <p className="text-muted-foreground">{SITE.addressLines[0]},<br />{SITE.addressLines[1]}</p>
                     </div>
                   </div>
-
                   <div className="flex items-start gap-4">
-                    <div className="bg-primary/10 p-3 rounded-lg">
-                      <Phone className="w-6 h-6 text-primary" />
-                    </div>
+                    <div className="bg-primary/10 p-3 rounded-lg"><Phone className="w-5 h-5 text-primary" /></div>
                     <div>
-                      <h3 className="font-semibold mb-1">Phone</h3>
-                      <a href="tel:+918527881258" className="text-muted-foreground hover:text-primary transition-colors">
-                        +91 8527881258
-                      </a>
+                      <h3 className="font-semibold mb-1">Phone / WhatsApp</h3>
+                      <a href={SITE.phoneHref} className="text-muted-foreground hover:text-primary transition-colors">{SITE.phoneDisplay}</a>
                     </div>
                   </div>
-
                   <div className="flex items-start gap-4">
-                    <div className="bg-primary/10 p-3 rounded-lg">
-                      <Mail className="w-6 h-6 text-primary" />
-                    </div>
+                    <div className="bg-primary/10 p-3 rounded-lg"><Mail className="w-5 h-5 text-primary" /></div>
                     <div>
                       <h3 className="font-semibold mb-1">Email</h3>
-                      <a href="mailto:etalba87@gmail.com" className="text-muted-foreground hover:text-primary transition-colors">
-                        info@albaenterprise.in
-                      </a>
+                      <a href={`mailto:${SITE.email}`} className="text-muted-foreground hover:text-primary transition-colors">{SITE.email}</a>
                     </div>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Button
-                    size="lg"
-                    onClick={handleWhatsApp}
-                    className="bg-[#25D366] hover:bg-[#20BA5A] text-white"
-                  >
-                    Chat on WhatsApp
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button size="lg" className="bg-[#25D366] hover:bg-[#20BA5A] text-white" asChild>
+                    <a href={SITE.whatsappHref} target="_blank" rel="noopener noreferrer"><MessageCircle className="w-4 h-4 mr-2" /> Chat on WhatsApp</a>
                   </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    onClick={() => window.location.href = "mailto:etalba87@gmail.com"}
-                  >
-                    Get Free Quote
+                  <Button size="lg" variant="outline" asChild>
+                    <Link to="/hire-staff">Hire Staff</Link>
                   </Button>
                 </div>
 
-                {/* Map */}
-                <div className="mt-8 rounded-lg overflow-hidden shadow-lg">
+                <div className="mt-8 rounded-xl overflow-hidden border">
                   <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3510.8891234567890!2d77.3712345!3d28.3912345!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjjCsDIzJzI4LjQiTiA3N8KwMjInMTYuNCJF!5e0!3m2!1sen!2sin!4v1234567890123!5m2!1sen!2sin"
+                    src={SITE.mapEmbed}
                     width="100%"
                     height="300"
                     style={{ border: 0 }}
                     allowFullScreen
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
-                    title="Alba Enterprise Location"
+                    title="Alba Enterprise office location"
                   />
                 </div>
               </motion.div>
 
-              {/* Contact Form */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-              >
-                <div className="bg-card p-8 rounded-lg shadow-lg border">
-                  <h2 className="text-3xl font-bold mb-2">Send us a Message</h2>
-                  <p className="text-muted-foreground mb-6">Upload your CV for future job opportunities</p>
-                  
+              {/* Form */}
+              <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
+                <div className="bg-card p-6 md:p-8 rounded-xl shadow-sm border">
+                  <h2 className="text-2xl font-bold mb-6">Send us a Message</h2>
+
                   {success ? (
-                    <div className="text-center py-8">
-                      <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                      <h3 className="text-xl font-bold mb-2">Query Submitted!</h3>
-                      <p className="text-muted-foreground">
-                        Thank you for reaching out. We'll contact you soon.
-                      </p>
+                    <div className="text-center py-10">
+                      <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+                      <h3 className="text-xl font-bold mb-2">Message received</h3>
+                      <p className="text-muted-foreground mb-6">Thank you for reaching out. We'll contact you soon.</p>
+                      <Button variant="outline" onClick={() => setSuccess(false)}>Send another message</Button>
                     </div>
                   ) : (
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                       <div>
-                        <Label htmlFor="name">Full Name *</Label>
-                        <Input
-                          id="name"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          placeholder="Enter your name"
-                          className={errors.name ? "border-destructive" : ""}
-                        />
-                        {errors.name && <p className="text-sm text-destructive mt-1">{errors.name}</p>}
+                        <Label>What can we help you with? *</Label>
+                        <Select value={type} onValueChange={(v) => setType(v as EnquiryType)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {TYPE_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
                       </div>
 
-                      <div>
-                        <Label htmlFor="email">Email Address *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          placeholder="your.email@example.com"
-                          className={errors.email ? "border-destructive" : ""}
-                        />
-                        {errors.email && <p className="text-sm text-destructive mt-1">{errors.email}</p>}
+                      {type === "Hiring Requirement" && (
+                        <Link to="/hire-staff" className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm hover:bg-primary/10 transition-colors">
+                          <span>For faster service, use our <strong>hiring requirement form</strong>. It captures department, positions and timelines in one go.</span>
+                          <ArrowRight className="w-4 h-4 text-primary flex-shrink-0 ml-3" />
+                        </Link>
+                      )}
+
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="sm:col-span-2">
+                          <Label htmlFor="name">Full Name *</Label>
+                          <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className={errors.name ? "border-destructive" : ""} />
+                          {err("name")}
+                        </div>
+                        <div>
+                          <Label htmlFor="email">Email *</Label>
+                          <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className={errors.email ? "border-destructive" : ""} />
+                          {err("email")}
+                        </div>
+                        <div>
+                          <Label htmlFor="phone">Phone / WhatsApp *</Label>
+                          <Input id="phone" type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+91" className={errors.phone ? "border-destructive" : ""} />
+                          {err("phone")}
+                        </div>
                       </div>
 
-                      <div>
-                        <Label htmlFor="phone">Phone Number *</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          placeholder="+91 XXXXXXXXXX"
-                          className={errors.phone ? "border-destructive" : ""}
-                        />
-                        {errors.phone && <p className="text-sm text-destructive mt-1">{errors.phone}</p>}
-                      </div>
+                      {isSeeker && (
+                        <div className="grid sm:grid-cols-2 gap-4 rounded-lg bg-muted/60 p-4">
+                          <div>
+                            <Label>Department *</Label>
+                            <Select value={seeker.department} onValueChange={(v) => setSeeker({ ...seeker, department: v })}>
+                              <SelectTrigger className={errors.department ? "border-destructive" : ""}><SelectValue placeholder="Select" /></SelectTrigger>
+                              <SelectContent>
+                                {DEPARTMENTS.map((d) => <SelectItem key={d.title} value={d.title}>{d.title}</SelectItem>)}
+                                <SelectItem value="Other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {err("department")}
+                          </div>
+                          <div>
+                            <Label htmlFor="role">Current / desired role</Label>
+                            <Input id="role" value={seeker.role} onChange={(e) => setSeeker({ ...seeker, role: e.target.value })} placeholder="e.g. Commis I" />
+                          </div>
+                          <div>
+                            <Label>Experience</Label>
+                            <Select value={seeker.experience} onValueChange={(v) => setSeeker({ ...seeker, experience: v })}>
+                              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                              <SelectContent>
+                                {EXPERIENCE.map((x) => <SelectItem key={x} value={x}>{x}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="currentCity">Current city</Label>
+                            <Input id="currentCity" value={seeker.currentCity} onChange={(e) => setSeeker({ ...seeker, currentCity: e.target.value })} />
+                          </div>
+                          <div className="sm:col-span-2">
+                            <Label htmlFor="preferredLocation">Preferred job location(s) in India</Label>
+                            <Input id="preferredLocation" value={seeker.preferredLocation} onChange={(e) => setSeeker({ ...seeker, preferredLocation: e.target.value })} placeholder="e.g. Delhi NCR, Jaipur, Anywhere" />
+                          </div>
+                        </div>
+                      )}
 
                       <div>
-                        <Label htmlFor="message">Your Message *</Label>
+                        <Label htmlFor="message">{isSeeker ? "Anything else we should know?" : "Your Message *"}</Label>
                         <Textarea
                           id="message"
                           value={formData.message}
                           onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                          placeholder="Tell us about your requirements..."
+                          placeholder={isSeeker ? "Notice period, expected salary, etc." : "How can we help?"}
                           rows={4}
                           className={errors.message ? "border-destructive" : ""}
                         />
-                        {errors.message && <p className="text-sm text-destructive mt-1">{errors.message}</p>}
+                        {err("message")}
                       </div>
 
-                      <div>
-                        <Label htmlFor="cv">Upload CV (Optional - PDF or DOC, max 5MB)</Label>
-                        <div className="mt-2">
+                      {(isSeeker || type === "General") && (
+                        <div>
+                          <Label htmlFor="cv">Upload CV {isSeeker ? "(recommended)" : "(optional)"}: PDF or DOC, max 5MB</Label>
                           <label
                             htmlFor="cv"
-                            className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                              errors.cv 
-                                ? "border-destructive bg-destructive/5" 
-                                : cvFile 
-                                  ? "border-primary bg-primary/5" 
-                                  : "border-border hover:border-primary hover:bg-muted/50"
+                            className={`mt-2 flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                              errors.cv ? "border-destructive bg-destructive/5" : cvFile ? "border-primary bg-primary/5" : "border-border hover:border-primary hover:bg-muted/50"
                             }`}
                           >
-                            <div className="flex flex-col items-center justify-center py-4">
-                              <Upload className={`w-6 h-6 mb-2 ${cvFile ? "text-primary" : "text-muted-foreground"}`} />
-                              {cvFile ? (
-                                <p className="text-sm text-primary font-medium">{cvFile.name}</p>
-                              ) : (
-                                <>
-                                  <p className="text-sm text-muted-foreground">
-                                    <span className="font-medium">Click to upload</span>
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">PDF or DOC (max 5MB)</p>
-                                </>
-                              )}
-                            </div>
-                            <input
-                              id="cv"
-                              type="file"
-                              className="hidden"
-                              accept=".pdf,.doc,.docx"
-                              onChange={handleFileChange}
-                            />
+                            <Upload className={`w-5 h-5 mb-1 ${cvFile ? "text-primary" : "text-muted-foreground"}`} />
+                            <p className={`text-sm ${cvFile ? "text-primary font-medium" : "text-muted-foreground"}`}>
+                              {cvFile ? cvFile.name : "Click to upload"}
+                            </p>
+                            <input id="cv" type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
                           </label>
+                          {err("cv")}
                         </div>
-                        {errors.cv && <p className="text-sm text-destructive mt-1">{errors.cv}</p>}
-                      </div>
+                      )}
 
+                      {fallback && <SubmitFallback subject={`Website enquiry – ${type} – ${formData.name}`} text={fallback} />}
                       <Button type="submit" size="lg" className="w-full" disabled={loading}>
-                        {loading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                            Submitting...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="w-5 h-5 mr-2" />
-                            Send Message
-                          </>
-                        )}
+                        {loading ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Sending...</> : <><Send className="w-5 h-5 mr-2" /> Send Message</>}
                       </Button>
+                      <p className="text-xs text-muted-foreground text-center">
+                        We use your details only to respond to your enquiry. See our <Link to="/privacy-policy" className="underline">Privacy Policy</Link>.
+                      </p>
                     </form>
                   )}
                 </div>

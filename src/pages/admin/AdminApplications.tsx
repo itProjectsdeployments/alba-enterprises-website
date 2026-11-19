@@ -90,6 +90,7 @@ const AdminApplications = () => {
             <p className="text-muted-foreground">Review candidate applications.</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" asChild><Link to="/admin/enquiries">Enquiries</Link></Button>
             <Button variant="outline" asChild><Link to="/admin/jobs">Manage Vacancies</Link></Button>
             <Button onClick={exportCsv} disabled={!filtered.length}>
               <Download className="w-4 h-4 mr-2" /> Export CSV

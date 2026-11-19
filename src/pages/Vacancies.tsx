@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Briefcase, MapPin, DollarSign, Search, Filter, FileText } from "lucide-react";
+import { Briefcase, MapPin, IndianRupee, Search, Filter, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,16 +11,16 @@ import Footer from "@/components/Footer";
 import Chatbot from "@/components/Chatbot";
 import JobApplicationForm from "@/components/JobApplicationForm";
 import { supabase } from "@/integrations/supabase/client";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import heroImage from "@/assets/hero-recruitment.jpg";
+import { Link } from "react-router-dom";
+import { SITE } from "@/lib/site";
+import heroImage from "@/assets/industry-hospitality.jpg";
 
 interface Job {
   id: string;
   title: string;
   category: string;
   country: string;
+  location: string | null;
   description: string;
   salary: string | null;
   status: string;
@@ -33,15 +33,14 @@ const Vacancies = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [countryFilter, setCountryFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const [loadError, setLoadError] = useState(false);
 
   const categories = [...new Set(jobs.map(job => job.category))];
-  const countries = [...new Set(jobs.map(job => job.country))];
+  const jobLocation = (job: Job) => job.location || job.country;
+  const locations = [...new Set(jobs.map(jobLocation))];
 
   useEffect(() => {
     fetchJobs();
@@ -49,7 +48,7 @@ const Vacancies = () => {
 
   useEffect(() => {
     filterJobs();
-  }, [jobs, searchTerm, categoryFilter, countryFilter]);
+  }, [jobs, searchTerm, categoryFilter, locationFilter]);
 
   const fetchJobs = async () => {
     try {
@@ -63,6 +62,7 @@ const Vacancies = () => {
       setJobs(data || []);
     } catch (error) {
       console.error("Error fetching jobs:", error);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -83,22 +83,15 @@ const Vacancies = () => {
       filtered = filtered.filter(job => job.category === categoryFilter);
     }
 
-    if (countryFilter !== "all") {
-      filtered = filtered.filter(job => job.country === countryFilter);
+    if (locationFilter !== "all") {
+      filtered = filtered.filter(job => jobLocation(job) === locationFilter);
     }
 
     setFilteredJobs(filtered);
   };
 
+  // No account needed: the application form collects name, contact and CV.
   const handleApply = (job: Job) => {
-    if (!user) {
-      toast({
-        title: "Please sign in to apply",
-        description: "Create a free candidate account to apply for jobs.",
-      });
-      navigate("/register");
-      return;
-    }
     setSelectedJob(job);
     setIsDialogOpen(true);
   };
@@ -122,13 +115,17 @@ const Vacancies = () => {
     },
     jobLocation: {
       "@type": "Place",
-      address: { "@type": "PostalAddress", addressCountry: job.country },
+      address: {
+        "@type": "PostalAddress",
+        addressCountry: "IN",
+        ...(job.location && { addressLocality: job.location }),
+      },
     },
     industry: job.category,
     ...(job.salary && {
       baseSalary: {
         "@type": "MonetaryAmount",
-        currency: "USD",
+        currency: "INR",
         value: { "@type": "QuantitativeValue", value: job.salary, unitText: "MONTH" },
       },
     }),
@@ -137,8 +134,8 @@ const Vacancies = () => {
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Job Vacancies — International Careers | Alba Enterprise"
-        description="Explore open job vacancies across Europe, the Gulf and beyond. Apply for skilled and unskilled roles with trusted global employers via Alba Enterprise."
+        title="Hotel Jobs in India | Hospitality Vacancies | Alba Enterprise"
+        description="Current hotel and hospitality job vacancies across India: Front Office, Housekeeping, Laundry, F&B Production, F&B Service and Maintenance roles from junior to senior level."
         path="/vacancies"
         jsonLd={jobPostingsLd.length ? jobPostingsLd : undefined}
       />
@@ -149,7 +146,7 @@ const Vacancies = () => {
         <section className="relative text-primary-foreground py-20 overflow-hidden">
           <div className="absolute inset-0">
             <img src={heroImage}
-              alt="International job vacancies and overseas recruitment opportunities by Alba Enterprise"
+              alt="Hotel kitchen and service professionals"
               className="w-full h-full object-cover"
               loading="lazy"
               decoding="async"/>
@@ -162,9 +159,9 @@ const Vacancies = () => {
               transition={{ duration: 0.6 }}
               className="text-center max-w-3xl mx-auto"
             >
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Job Vacancies</h1>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">Hotel Jobs in India</h1>
               <p className="text-lg opacity-90">
-                Explore exciting career opportunities across the globe with Alba Enterprise
+                Current openings with hotels and hospitality businesses across India, from junior to senior level.
               </p>
             </motion.div>
           </div>
@@ -196,15 +193,15 @@ const Vacancies = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={countryFilter} onValueChange={setCountryFilter}>
+                <Select value={locationFilter} onValueChange={setLocationFilter}>
                   <SelectTrigger className="w-full md:w-[180px]">
                     <MapPin className="w-4 h-4 mr-2" />
-                    <SelectValue placeholder="Country" />
+                    <SelectValue placeholder="Location" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Countries</SelectItem>
-                    {countries.map(country => (
-                      <SelectItem key={country} value={country}>{country}</SelectItem>
+                    <SelectItem value="all">All Locations</SelectItem>
+                    {locations.map(loc => (
+                      <SelectItem key={loc} value={loc}>{loc}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -245,11 +242,11 @@ const Vacancies = () => {
                       </h3>
                       <div className="flex items-center gap-2 text-muted-foreground mb-3">
                         <MapPin className="w-4 h-4" />
-                        <span className="text-sm">{job.country}</span>
+                        <span className="text-sm">{jobLocation(job)}</span>
                       </div>
                       {job.salary && (
                         <div className="flex items-center gap-2 text-muted-foreground mb-4">
-                          <DollarSign className="w-4 h-4" />
+                          <IndianRupee className="w-4 h-4" />
                           <span className="text-sm">{job.salary}</span>
                         </div>
                       )}
@@ -265,6 +262,19 @@ const Vacancies = () => {
                     </div>
                   </motion.div>
                 ))}
+              </div>
+            ) : loadError ? (
+              <div className="text-center py-16 max-w-xl mx-auto">
+                <FileText className="w-14 h-14 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-2xl font-bold mb-2">We couldn't load vacancies right now</h3>
+                <p className="text-muted-foreground mb-6">
+                  We're always hiring for hotel roles across India. Send your CV on WhatsApp and our team will contact you about current openings.
+                </p>
+                <Button asChild className="bg-[#25D366] hover:bg-[#20BA5A] text-white">
+                  <a href={`${SITE.whatsappHref}?text=${encodeURIComponent("Hello Alba Enterprise, I'm looking for a hotel job. Sharing my CV.")}`} target="_blank" rel="noopener noreferrer">
+                    Send CV on WhatsApp
+                  </a>
+                </Button>
               </div>
             ) : (
               <div className="text-center py-20">
@@ -287,13 +297,13 @@ const Vacancies = () => {
               className="mt-16 text-center bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-8 md:p-12"
             >
               <h3 className="text-2xl md:text-3xl font-bold mb-4">
-                Don't find your job category?
+                Didn't find the right role?
               </h3>
               <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                Submit your CV directly and we'll match you with suitable opportunities as they become available.
+                Send us your CV and we'll contact you when a suitable hospitality role opens with one of our hiring partners in India.
               </p>
               <Button asChild size="lg" variant="default">
-                <Link to="/contact">
+                <Link to="/contact?type=job-seeker">
                   <FileText className="w-5 h-5 mr-2" />
                   Submit Your CV
                 </Link>

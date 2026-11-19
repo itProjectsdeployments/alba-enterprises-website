@@ -1,235 +1,191 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Target, Eye, Heart, CheckCircle } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import SEO from "@/components/SEO";
 import Footer from "@/components/Footer";
 import Chatbot from "@/components/Chatbot";
+import PageHero from "@/components/PageHero";
+import ScopeNotice from "@/components/ScopeNotice";
+import { Button } from "@/components/ui/button";
+import { SITE } from "@/lib/site";
 import directorImage from "@/assets/azam-ali-khan.png";
 import aboutHeroImage from "@/assets/about-hero-bg.jpg";
-import missionVisual from "@/assets/mission-visual.jpg";
-import visionVisual from "@/assets/vision-visual.jpg";
-import valuesVisual from "@/assets/values-visual.jpg";
+
+const fadeUp = {
+  initial: { opacity: 0, y: 20 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true },
+  transition: { duration: 0.6 },
+};
 
 const About = () => {
   const values = [
     {
       icon: Target,
-      image: missionVisual,
       title: "Mission",
-      description: "To bridge the gap between skilled Indian professionals and international employers through ethical manpower consultancy, staffing solutions and overseas recruitment services.",
+      description:
+        "To help hospitality businesses across India build dependable teams by matching them with skilled, well-screened candidates through an honest and efficient recruitment process.",
     },
     {
       icon: Eye,
-      image: visionVisual,
       title: "Vision",
-      description: "To become the world's most trusted international recruitment partner delivering high-quality manpower solutions and successful global placements.",
+      description:
+        "To be India's most trusted hospitality recruitment partner, known for the quality of our shortlists and the long-term success of our placements.",
     },
     {
       icon: Heart,
-      image: valuesVisual,
       title: "Values",
-      description: "Integrity, Excellence, Transparency, and Client Satisfaction guide everything we do.",
+      description:
+        "Integrity, transparency, responsiveness and respect for every client and candidate we work with.",
     },
   ];
 
-  const whyEuropeanCompanies = [
-    "Pre-screened, skilled Indian professionals",
-    "Complete documentation and compliance support",
-    "Cultural orientation and training",
-    "Post-placement support and follow-up",
-    "Cost-effective recruitment solutions",
-    "Dedicated account management",
+  const forHotels = [
+    "Recruiters who know hotel departments and roles",
+    "Pre-screened profiles matched to your brief",
+    "Interview scheduling and candidate coordination",
+    "Support for single, bulk and pre-opening hiring",
+    "Follow-up after joining",
+    "One dedicated point of contact",
   ];
 
-  const whyIndianCandidates = [
-    "Genuine European job opportunities",
-    "End-to-end visa assistance",
-    "Pre-departure orientation",
-    "Fair and transparent process",
-    "No hidden charges",
-    "Ongoing support after placement",
+  const forCandidates = [
+    "Genuine openings with hospitality employers in India",
+    "Honest guidance on roles, salary and growth",
+    "Opportunities from junior to senior level",
+    "Clear communication at every stage",
+    "Your profile shared only with relevant employers",
+    "Support through interview and joining",
   ];
 
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="About Alba Enterprise | International Recruitment Partner & Manpower Consultancy"
-
-      description="Learn about Alba Enterprise, a trusted international recruitment partner and manpower 
-      consultancy connecting skilled Indian professionals with employers across Europe through ethical staffing and overseas recruitment services."
+        title="About Alba Enterprise | Hospitality Recruitment Agency in India"
+        description="Alba Enterprise is a Faridabad-based hospitality recruitment agency serving hotels and hospitality businesses across India since 2013, with additional HR consultancy and visa documentation services."
+        path="/about"
       />
       <Navbar />
-      
-      <div className="pt-20">
-        {/* Hero Section */}
-        <section className="relative text-primary-foreground py-20 overflow-hidden">
-          <div className="absolute inset-0">
-            <img src={aboutHeroImage} alt="Alba Enterprise international recruitment partner helping Indian professionals find overseas jobs" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50" />
-          </div>
-          <div className="container mx-auto px-4 relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center max-w-3xl mx-auto"
-            >
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">About Alba Enterprise</h1>
-              <p className="text-lg opacity-90">
-                Your trusted international recruitment partner and manpower consultancy connecting skilled Indian professionals with employers across Europe since 2013.
-              </p>
-            </motion.div>
-          </div>
-        </section>
 
-        {/* Our Story */}
-        <section className="py-20 bg-gradient-to-br from-primary/5 via-accent/5 to-background">
+      <div className="pt-20">
+        <PageHero
+          image={aboutHeroImage}
+          imageAlt="Alba Enterprise office team"
+          eyebrow="About us"
+          title="Hospitality Recruitment, Done Right"
+          subtitle={`Since ${SITE.foundedYear}, Alba Enterprise has helped hospitality businesses find dependable people and helped hospitality professionals find the right workplace.`}
+        />
+
+        {/* Story */}
+        <section className="py-20">
           <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-                className="text-center mb-12"
-              >
-                <h2 className="text-3xl md:text-4xl font-bold mb-6 text-primary">Our Story</h2>
-                <div className="space-y-4 text-lg text-muted-foreground text-left bg-card p-8 rounded-xl shadow-lg border">
-                  <p>
-                    Founded in 2013 by Azam Ali Khan, Alba Enterprise was established with a clear vision of becoming a trusted international recruitment partner for employers and job seekers. 
-                    Our mission is to connect skilled Indian professionals with genuine overseas employment opportunities across Europe through ethical recruitment and manpower consultancy services.
-                  </p>
-                  <p>
-                    Over the past decade, Alba Enterprise has grown into a leading manpower consultancy and international staffing agency.
-                    Our deep understanding of European labour markets and Indian talent enables us to provide reliable recruitment, visa guidance and workforce solutions for employers and candidates alike.
-                  </p>
-                  <p>
-                    Today, Alba Enterprise is recognised as a trusted international recruitment partner known for integrity, professionalism and long-term client relationships. 
-                    We don't simply recruit candidates—we help businesses build skilled teams while creating life-changing overseas career opportunities.
-                  </p>
-                </div>
+            <div className="grid lg:grid-cols-[1fr_2fr] gap-12 max-w-5xl mx-auto">
+              <motion.div {...fadeUp}>
+                <p className="uppercase tracking-[0.2em] text-xs font-semibold text-primary mb-3">Our story</p>
+                <h2 className="text-3xl md:text-4xl font-bold">Built on trust and follow-through</h2>
+              </motion.div>
+              <motion.div {...fadeUp} className="space-y-5 text-lg text-muted-foreground">
+                <p>
+                  Alba Enterprise was founded in {SITE.foundedYear} by Azam Ali Khan with a simple idea: recruitment
+                  should be honest, quick and personal. From our office in Faridabad, we work with hotels, resorts,
+                  restaurants and hospitality groups across India.
+                </p>
+                <p>
+                  We specialise in hospitality. Our team recruits for Front Office, Housekeeping, Laundry,
+                  F&B Production, F&B Service and Maintenance, from entry-level associates to department heads.
+                  Because we focus on one industry, we understand the roles, the standards and what makes a
+                  candidate succeed in them.
+                </p>
+                <p>
+                  Alongside recruitment, we offer HR consultancy and visa guidance & documentation assistance
+                  for businesses and individuals who need help with paperwork and process.
+                </p>
               </motion.div>
             </div>
           </div>
         </section>
 
-        {/* Mission, Vision, Values */}
-        <section className="py-16 bg-gradient-to-br from-primary to-primary-dark">
+        {/* Mission / Vision / Values */}
+        <section className="py-16 bg-muted">
           <div className="container mx-auto px-4">
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-3 gap-6">
               {values.map((value, index) => (
                 <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  whileHover={{ y: -10, scale: 1.02 }}
-                  className="bg-card rounded-xl shadow-2xl border overflow-hidden group cursor-pointer"
+                  key={value.title}
+                  {...fadeUp}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="bg-card rounded-xl border p-8"
                 >
-                  <div className="relative h-48 overflow-hidden">
-                    <img 
-                      src={value.image} 
-                      alt={value.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                     loading="lazy" decoding="async" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/50 to-transparent" />
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 transition-all duration-300 group-hover:scale-125">
-                      <div className="bg-accent p-3 rounded-full">
-                        <value.icon className="w-10 h-10 text-primary-foreground" />
-                      </div>
-                    </div>
+                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
+                    <value.icon className="w-6 h-6 text-primary" />
                   </div>
-                  <div className="p-8 text-center">
-                    <h3 className="text-2xl font-bold mb-4 text-primary">{value.title}</h3>
-                    <p className="text-muted-foreground">{value.description}</p>
-                  </div>
+                  <h3 className="text-2xl font-bold mb-3">{value.title}</h3>
+                  <p className="text-muted-foreground">{value.description}</p>
                 </motion.div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Why Choose Us - For Companies */}
-        <section className="py-20 bg-gradient-to-r from-accent/10 to-primary/10">
+        {/* Why choose us */}
+        <section className="py-20">
           <div className="container mx-auto px-4">
-            <div className="grid lg:grid-cols-2 gap-12">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-                className="bg-card p-8 rounded-xl shadow-lg border"
-              >
-                <h2 className="text-3xl font-bold mb-6 text-primary">Why European Companies Trust Alba Enterprise</h2>
-                <div className="space-y-4">
-                  {whyEuropeanCompanies.map((reason, index) => (
-                    <motion.div 
-                      key={index} 
-                      className="flex items-start gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors"
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <CheckCircle className="w-6 h-6 text-accent flex-shrink-0 mt-1" />
-                      <p className="text-lg text-muted-foreground">{reason}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-                className="bg-card p-8 rounded-xl shadow-lg border"
-              >
-                <h2 className="text-3xl font-bold mb-6 text-primary">Why Indian Professionals Choose Alba Enterprise</h2>
-                <div className="space-y-4">
-                  {whyIndianCandidates.map((reason, index) => (
-                    <motion.div 
-                      key={index} 
-                      className="flex items-start gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors"
-                      initial={{ opacity: 0, x: 10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <CheckCircle className="w-6 h-6 text-accent flex-shrink-0 mt-1" />
-                      <p className="text-lg text-muted-foreground">{reason}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
+            <div className="grid lg:grid-cols-2 gap-8">
+              {[
+                { title: "Why Hotels Work With Us", items: forHotels },
+                { title: "Why Hospitality Professionals Choose Us", items: forCandidates },
+              ].map((col) => (
+                <motion.div key={col.title} {...fadeUp} className="bg-card p-8 rounded-xl border">
+                  <h2 className="text-2xl md:text-3xl font-bold mb-6">{col.title}</h2>
+                  <ul className="space-y-3">
+                    {col.items.map((reason) => (
+                      <li key={reason} className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
+                        <span className="text-muted-foreground">{reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.div>
+              ))}
             </div>
+            <ScopeNotice className="mt-8" />
           </div>
         </section>
 
-        {/* Director Section */}
-        <section className="py-16 bg-gradient-to-r from-primary/10 to-accent/10">
+        {/* Director */}
+        <section className="py-16 bg-muted">
           <div className="container mx-auto px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="max-w-4xl mx-auto text-center"
-            >
+            <motion.div {...fadeUp} className="max-w-3xl mx-auto text-center">
               <img
                 src={directorImage}
-                alt="Azam Ali Khan, Founder and Director of Alba Enterprise International Recruitment Agency"
-                className="w-48 h-48 rounded-full mx-auto mb-6 shadow-xl object-cover"
-               loading="lazy" decoding="async" />
-              <h3 className="text-2xl font-bold mb-2">Azam Ali Khan</h3>
-              <p className="text-lg text-primary font-semibold mb-4">Founder & Director – International Recruitment Partner</p>
-              <p className="text-muted-foreground text-lg">
-                "Our success is measured not just in placements made, but in lives transformed 
-                and dreams realized. At Alba Enterprise, we are committed to maintaining the 
-                highest standards of service and integrity in everything we do."
-              </p>
+                alt="Azam Ali Khan, Founder and Director of Alba Enterprise"
+                className="w-40 h-40 rounded-full mx-auto mb-6 shadow-xl object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+              <h3 className="text-2xl font-bold mb-1">Azam Ali Khan</h3>
+              <p className="text-primary font-semibold mb-5">Founder & Director</p>
+              <blockquote className="text-muted-foreground text-lg italic">
+                "We measure our success by how long our candidates stay and grow with the employers we place them
+                with. Every hotel deserves a team it can rely on, and every professional deserves a workplace where
+                they can do their best work."
+              </blockquote>
             </motion.div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="py-16">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl font-bold mb-4">Ready to talk?</h2>
+            <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
+              Share your hiring requirement or send us your CV, and our team will get back to you shortly.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" asChild><Link to="/hire-staff">Hire Staff</Link></Button>
+              <Button size="lg" variant="outline" asChild><Link to="/contact?type=job-seeker">Submit Your CV</Link></Button>
+            </div>
           </div>
         </section>
       </div>

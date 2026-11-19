@@ -1,151 +1,86 @@
 import { Link } from "react-router-dom";
-import {
-  Facebook,
-  Linkedin,
-  Twitter,
-  Instagram,
-  Mail,
-  Phone,
-  MapPin,
-} from "lucide-react";
+import { Facebook, Linkedin, Instagram, Youtube, Mail, Phone, MapPin, MessageCircle } from "lucide-react";
+import { SCOPE_NOTE, SITE, SOCIAL_LINKS } from "@/lib/site";
+
+const socials = [
+  { href: SOCIAL_LINKS.instagram, icon: Instagram, label: "Instagram" },
+  { href: SOCIAL_LINKS.linkedin, icon: Linkedin, label: "LinkedIn" },
+  { href: SOCIAL_LINKS.facebook, icon: Facebook, label: "Facebook" },
+  { href: SOCIAL_LINKS.youtube, icon: Youtube, label: "YouTube" },
+].filter((s) => s.href);
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-primary text-primary-foreground">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Company Info */}
+    <footer className="bg-primary-dark text-primary-foreground">
+      <div className="container mx-auto px-4 py-14">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           <div>
-            <h3 className="text-xl font-bold mb-4">Alba Enterprise</h3>
-            <p className="text-sm opacity-90 mb-4">
-              Leading manpower consultancy & international recruitment agency
-              with 10+ years of excellence.
+            <h3 className="text-xl font-bold mb-3">{SITE.name}</h3>
+            <p className="text-sm opacity-85 mb-5">
+              Pan-India hotel & hospitality recruitment, from junior to senior-level hiring. Also offering HR
+              consultancy and visa documentation assistance.
             </p>
-
-            <div className="flex space-x-4">
-              <a href="#" className="hover:text-accent transition-colors">
-                <Facebook className="w-5 h-5" />
-              </a>
-
-              <a href="#" className="hover:text-accent transition-colors">
-                <Linkedin className="w-5 h-5" />
-              </a>
-
-              <a href="#" className="hover:text-accent transition-colors">
-                <Twitter className="w-5 h-5" />
-              </a>
-
-              <a href="#" className="hover:text-accent transition-colors">
-                <Instagram className="w-5 h-5" />
-              </a>
-            </div>
+            {socials.length > 0 && (
+              <div className="flex gap-4">
+                {socials.map((s) => (
+                  <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} className="hover:text-accent transition-colors">
+                    <s.icon className="w-5 h-5" />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Quick Links */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
-
-            <ul className="space-y-2 text-sm">
-              <li>
-                <Link
-                  to="/"
-                  className="hover:text-accent transition-colors"
-                >
-                  Home
-                </Link>
-              </li>
-
-              <li>
-                <Link
-                  to="/about"
-                  className="hover:text-accent transition-colors"
-                >
-                  About Us
-                </Link>
-              </li>
-
-              <li>
-                <Link
-                  to="/services"
-                  className="hover:text-accent transition-colors"
-                >
-                  Services
-                </Link>
-              </li>
-
-              <li>
-                <Link
-                  to="/industries"
-                  className="hover:text-accent transition-colors"
-                >
-                  Industries
-                </Link>
-              </li>
-
-              <li>
-                <Link
-                  to="/privacy-policy"
-                  className="hover:text-accent transition-colors"
-                >
-                  Privacy Policy
-                </Link>
-              </li>
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">Company</h3>
+            <ul className="space-y-2 text-sm opacity-90">
+              <li><Link to="/about" className="hover:text-accent transition-colors">About Us</Link></li>
+              <li><Link to="/process" className="hover:text-accent transition-colors">Our Process</Link></li>
+              <li><Link to="/vacancies" className="hover:text-accent transition-colors">Hotel Jobs</Link></li>
+              <li><Link to="/contact?type=job-seeker" className="hover:text-accent transition-colors">Submit Your CV</Link></li>
+              <li><Link to="/privacy-policy" className="hover:text-accent transition-colors">Privacy Policy</Link></li>
             </ul>
           </div>
 
-          {/* Services */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Our Services</h3>
-
-            <ul className="space-y-2 text-sm">
-              <li>Recruitment</li>
-              <li>Visa Services</li>
-              <li>Holiday Packages</li>
-              <li>Air Ticket Booking</li>
-              <li>Education</li>
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">Services</h3>
+            <ul className="space-y-2 text-sm opacity-90">
+              <li><Link to="/hire-staff" className="hover:text-accent transition-colors">Hotel & Hospitality Recruitment</Link></li>
+              <li><Link to="/industries" className="hover:text-accent transition-colors">Departments & Roles</Link></li>
+              <li><Link to="/services#hr-consultancy" className="hover:text-accent transition-colors">HR Consultancy</Link></li>
+              <li><Link to="/services#visa" className="hover:text-accent transition-colors">Visa Guidance & Documentation</Link></li>
+              <li><Link to="/services#travel" className="hover:text-accent transition-colors">Travel Services</Link></li>
             </ul>
           </div>
 
-          {/* Contact Info */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
-
-            <ul className="space-y-3 text-sm">
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">Contact</h3>
+            <ul className="space-y-3 text-sm opacity-90">
               <li className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
-                <span>
-                  Office No. 827, 8th Floor, Puri Business Hub, Sector 81,
-                  Faridabad
-                </span>
+                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>{SITE.addressLines.join(", ")}</span>
               </li>
-
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 flex-shrink-0" />
-                <a
-                  href="tel:+91918527881258"
-                  className="hover:text-accent transition-colors"
-                >
-                  +91 918527881258
-                </a>
+                <a href={SITE.phoneHref} className="hover:text-accent transition-colors">{SITE.phoneDisplay}</a>
               </li>
-
+              <li className="flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 flex-shrink-0" />
+                <a href={SITE.whatsappHref} target="_blank" rel="noopener noreferrer" className="hover:text-accent transition-colors">WhatsApp us</a>
+              </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-4 h-4 flex-shrink-0" />
-                <a
-                  href="mailto:info@albaenterprise.in"
-                  className="hover:text-accent transition-colors"
-                >
-                  info@albaenterprise.in
-                </a>
+                <a href={`mailto:${SITE.email}`} className="hover:text-accent transition-colors">{SITE.email}</a>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="border-t border-primary-foreground/20 mt-8 pt-8 text-center text-sm">
-          <p>© {currentYear} Alba Enterprise. All rights reserved.</p>
+        <div className="border-t border-primary-foreground/15 mt-10 pt-6 text-xs opacity-75 space-y-2 text-center">
+          <p className="max-w-3xl mx-auto">{SCOPE_NOTE}</p>
+          <p>© {currentYear} {SITE.name}. All rights reserved.</p>
         </div>
       </div>
     </footer>

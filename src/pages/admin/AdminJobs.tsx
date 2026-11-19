@@ -36,7 +36,7 @@ const jobSchema = z.object({
 });
 
 const empty = {
-  title: "", category: "", country: "", location: "",
+  title: "", category: "", country: "India", location: "",
   description: "", salary: "", status: "open" as "open" | "closed",
 };
 
@@ -118,6 +118,7 @@ const AdminJobs = () => {
             <p className="text-muted-foreground">Create, edit and remove job postings.</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" asChild><Link to="/admin/enquiries">Enquiries</Link></Button>
             <Button variant="outline" asChild><Link to="/admin/applications">Applications</Link></Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
@@ -135,20 +136,20 @@ const AdminJobs = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Category *</Label>
-                    <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+                    <Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="e.g. F&B Production" />
                   </div>
                   <div>
                     <Label>Country *</Label>
-                    <Input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
+                    <Input value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} placeholder="India" />
                   </div>
                 </div>
                 <div>
-                  <Label>Location (city)</Label>
-                  <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+                  <Label>Location (city): shown on the website</Label>
+                  <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="e.g. Gurugram, Haryana" />
                 </div>
                 <div>
                   <Label>Salary</Label>
-                  <Input value={form.salary} onChange={(e) => setForm({ ...form, salary: e.target.value })} placeholder="e.g. $1500/mo" />
+                  <Input value={form.salary} onChange={(e) => setForm({ ...form, salary: e.target.value })} placeholder="e.g. ₹18,000–22,000/month" />
                 </div>
                 <div>
                   <Label>Description *</Label>
@@ -183,7 +184,7 @@ const AdminJobs = () => {
                 <tr>
                   <th className="text-left p-3">Title</th>
                   <th className="text-left p-3">Category</th>
-                  <th className="text-left p-3">Country</th>
+                  <th className="text-left p-3">Location</th>
                   <th className="text-left p-3">Status</th>
                   <th className="text-right p-3">Actions</th>
                 </tr>
@@ -193,7 +194,7 @@ const AdminJobs = () => {
                   <tr key={j.id} className="border-t">
                     <td className="p-3 font-medium">{j.title}</td>
                     <td className="p-3">{j.category}</td>
-                    <td className="p-3">{j.country}</td>
+                    <td className="p-3">{j.location || j.country}</td>
                     <td className="p-3">
                       <span className={`px-2 py-1 rounded text-xs ${j.status === "open" ? "bg-primary/10 text-primary" : "bg-muted-foreground/10 text-muted-foreground"}`}>
                         {j.status}

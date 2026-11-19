@@ -1,277 +1,134 @@
 import { motion } from "framer-motion";
-import { 
-  Building2, 
-  Wrench, 
-  Factory, 
-  Ship, 
-  Droplet, 
-  Heart, 
-  Users, 
-  HardHat,
-  Utensils 
-} from "lucide-react";
+import { Link } from "react-router-dom";
+import { Hotel, UtensilsCrossed, PartyPopper, Building } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import SEO from "@/components/SEO";
 import Footer from "@/components/Footer";
 import Chatbot from "@/components/Chatbot";
-import industriesHeroImage from "@/assets/industries-hero.jpg";
-import hospitalityImage from "@/assets/industry-hospitality.jpg";
-import constructionImage from "@/assets/industry-construction.jpg";
-import healthcareImage from "@/assets/industry-healthcare.jpg";
-import manufacturingImage from "@/assets/industry-manufacturing.jpg";
-import mechanicalImage from "@/assets/industry-mechanical.jpg";
-import onshoreOffshoreImage from "@/assets/industry-onshore-offshore.jpg";
-import marineImage from "@/assets/industry-marine.jpg";
-import oilGasImage from "@/assets/industry-oil-gas.jpg";
-import skilledUnskilledImage from "@/assets/industry-skilled-unskilled.jpg";
-import industriesExpertiseBg from "@/assets/industries-expertise-bg.jpg";
+import PageHero from "@/components/PageHero";
+import { Button } from "@/components/ui/button";
+import { DEPARTMENTS, HIRING_LEVELS, SITE } from "@/lib/site";
+import industriesHeroImage from "@/assets/industry-hospitality.jpg";
 import ctaIndustriesTalent from "@/assets/cta-industries-talent.jpg";
 
 const Industries = () => {
-  const industries = [
-    {
-      icon: Utensils,
-      title: "Hospitality",
-      roles: ["Chefs", "Commi Chef", "Restaurant Managers", "Waiters", "Housekeeping"],
-      image: hospitalityImage,
-    },
-    {
-      icon: HardHat,
-      title: "Construction",
-      roles: ["Civil Engineers", "Site Supervisors", "Masons", "Carpenters", "Electricians"],
-      image: constructionImage,
-    },
-    {
-      icon: Wrench,
-      title: "Mechanical",
-      roles: ["Mechanical Engineers", "Technicians", "Fitters", "Welders", "Maintenance Staff"],
-      image: mechanicalImage,
-    },
-    {
-      icon: Factory,
-      title: "Manufacturing",
-      roles: ["Production Managers", "Quality Controllers", "Machine Operators", "Assembly Workers"],
-      image: manufacturingImage,
-    },
-    {
-      icon: Building2,
-      title: "Onshore/Offshore",
-      roles: ["Project Managers", "Safety Officers", "Riggers", "Operators", "Supervisors"],
-      image: onshoreOffshoreImage,
-    },
-    {
-      icon: Ship,
-      title: "Marine",
-      roles: ["Ship Crew", "Marine Engineers", "Deck Officers", "Port Workers", "Logistics Staff"],
-      image: marineImage,
-    },
-    {
-      icon: Droplet,
-      title: "Oil & Gas",
-      roles: ["Petroleum Engineers", "Drilling Supervisors", "Safety Managers", "Technicians"],
-      image: oilGasImage,
-    },
-    {
-      icon: Heart,
-      title: "Healthcare",
-      roles: ["Nurses", "Caregivers", "Medical Assistants", "Lab Technicians", "Healthcare Support"],
-      image: healthcareImage,
-    },
-    {
-      icon: Users,
-      title: "Skilled / Unskilled",
-      roles: ["General Workers", "Helpers", "Drivers", "Security Guards", "Support Staff"],
-      image: skilledUnskilledImage,
-    },
+  const clientTypes = [
+    { icon: Hotel, title: "Hotels & Resorts", text: "Business hotels, luxury and boutique properties, and leisure resorts." },
+    { icon: UtensilsCrossed, title: "Restaurants & Cafés", text: "Fine dining, casual dining, QSR chains and cloud kitchens." },
+    { icon: PartyPopper, title: "Banquets & Catering", text: "Banquet halls, event venues and institutional catering." },
+    { icon: Building, title: "Clubs & Serviced Apartments", text: "Clubs, serviced apartments and corporate guest houses." },
   ];
 
   return (
     <div className="min-h-screen bg-background">
       <SEO
-        title="Industries We Serve | International Recruitment & Manpower Consultancy | Alba Enterprise"
-        description="Alba Enterprise provides international recruitment and manpower consultancy services for hospitality, construction, healthcare, manufacturing, marine, oil & gas, engineering and skilled workforce industries."
-        path="/industries"/>
+        title="Hotel Departments & Roles We Recruit For | Alba Enterprise"
+        description="Hotel recruitment across India for Front Office, Housekeeping, Laundry, F&B Production, F&B Service and Maintenance, from junior to senior level."
+        path="/industries"
+      />
       <Navbar />
-      
-      <div className="pt-20">
-        {/* Hero Section */}
-        <section className="relative text-primary-foreground py-20 overflow-hidden">
-          <div className="absolute inset-0">
-            <img src={industriesHeroImage} alt="International recruitment services across multiple industries by Alba Enterprise" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50" />
-          </div>
-          <div className="container mx-auto px-4 relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center max-w-3xl mx-auto"
-            >
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Industries We Recruit For</h1>
-              <p className="text-lg opacity-90">
-                Providing international recruitment, staffing and manpower solutions across multiple industries for employers and skilled professionals worldwide.
-              </p>
-            </motion.div>
-          </div>
-        </section>
 
-        {/* Industries Grid */}
-        <section className="py-20 bg-gradient-to-br from-primary/5 via-accent/5 to-background">
+      <div className="pt-20">
+        <PageHero
+          image={industriesHeroImage}
+          imageAlt="Hotel kitchen and service professionals"
+          eyebrow="Departments & roles"
+          title="Specialists in Hotel & Hospitality Hiring"
+          subtitle="We recruit across six core hotel departments for properties throughout India, from entry-level associates to department heads."
+        />
+
+        {/* Departments */}
+        <section className="py-20">
           <div className="container mx-auto px-4">
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {industries.map((industry, index) => (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {DEPARTMENTS.map((dept, index) => (
                 <motion.div
-                  key={index}
+                  key={dept.title}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 0.6, delay: index * 0.05 }}
-                  whileHover={{ y: -10, scale: 1.02 }}
-                  className="bg-gradient-to-br from-card to-card/50 border-2 border-primary/10 rounded-xl overflow-hidden shadow-xl hover:shadow-2xl hover:border-primary/30 transition-all group cursor-pointer"
+                  transition={{ duration: 0.5, delay: index * 0.05 }}
+                  className="bg-card border rounded-xl p-6 hover:shadow-lg hover:border-primary/40 transition-all"
                 >
-                  {industry.image && (
-                    <div className="h-48 overflow-hidden relative">
-                      <img 
-                        src={industry.image} 
-                        alt={
-                        industry.title === "Hospitality"
-                        ? "Hospitality recruitment services"
-                        : industry.title === "Construction"
-                        ? "Construction manpower recruitment"
-                        : industry.title === "Mechanical"
-                        ? "Mechanical engineering recruitment"
-                        : industry.title === "Manufacturing"
-                        ? "Manufacturing workforce recruitment"
-                        : industry.title === "Onshore/Offshore"
-                        ? "Onshore offshore manpower services"
-                        : industry.title === "Marine"
-                        ? "Marine recruitment services"
-                        : industry.title === "Oil & Gas"
-                        ? "Oil and gas recruitment"
-                        : industry.title === "Healthcare"
-                        ? "Healthcare recruitment services"
-                        : "Skilled and unskilled manpower recruitment"
-                    }
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                       loading="lazy" decoding="async" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    </div>
-                  )}
-                  
-                  <div className="p-6">
-                    <div className="bg-gradient-to-br from-primary to-primary-dark p-4 rounded-xl inline-block mb-4 shadow-lg group-hover:scale-110 transition-transform">
-                      <industry.icon className="w-10 h-10 text-primary-foreground" />
-                    </div>
-                    
-                    <h3 className="text-2xl font-bold mb-4 text-primary group-hover:text-accent transition-colors">{industry.title}</h3>
-                  
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-primary mb-2">
-                      Popular Job Roles:
-                    </p>
-                    <ul className="space-y-1">
-                      {industry.roles.map((role, idx) => (
-                        <li key={idx} className="text-sm text-muted-foreground flex items-start group/item hover:text-foreground transition-colors">
-                          <span className="text-accent mr-2 font-bold">•</span>
-                          {role}
-                        </li>
-                      ))}
-                    </ul>
+                  <div className="w-12 h-12 rounded-lg bg-primary text-primary-foreground flex items-center justify-center mb-4">
+                    <dept.icon className="w-6 h-6" />
                   </div>
-                  </div>
+                  <h2 className="text-2xl font-bold mb-2">{dept.title}</h2>
+                  <p className="text-muted-foreground mb-5">{dept.summary}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-2">Typical roles</p>
+                  <ul className="grid grid-cols-1 gap-1.5">
+                    {dept.roles.map((role) => (
+                      <li key={role} className="text-sm text-muted-foreground flex items-start">
+                        <span className="text-accent mr-2 font-bold">•</span>
+                        {role}
+                      </li>
+                    ))}
+                  </ul>
                 </motion.div>
+              ))}
+            </div>
+            <p className="text-center text-muted-foreground mt-10">
+              Don't see your role? We regularly hire for related positions too.{" "}
+              <Link to="/hire-staff" className="text-primary font-medium hover:underline">Tell us what you need.</Link>
+            </p>
+          </div>
+        </section>
+
+        {/* Levels */}
+        <section className="py-16 bg-primary text-primary-foreground">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center mb-10">Junior to Senior-Level Hiring</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {HIRING_LEVELS.map((level) => (
+                <div key={level.title} className="rounded-xl bg-white/10 border border-white/15 p-6">
+                  <h3 className="text-lg font-semibold mb-2">{level.title}</h3>
+                  <p className="text-sm text-primary-foreground/80">{level.description}</p>
+                </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* Stats Section */}
-        <section className="relative py-16 overflow-hidden">
-          <div className="absolute inset-0">
-            <img src={industriesExpertiseBg} alt="" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary-dark/95 to-accent/95" />
-          </div>
-          <div className="container mx-auto px-4 relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="text-center max-w-3xl mx-auto"
-            >
-              <h2 className="text-3xl font-bold mb-6 text-primary-foreground">International Recruitment Expertise Across Industries</h2>
-              <p className="text-lg text-primary-foreground/90 mb-8">
-                With over a decade of international recruitment experience, Alba Enterprise has successfully supplied skilled manpower, engineers, technicians, healthcare professionals, 
-                hospitality staff and industrial workers to employers across Europe and other international markets.
-              </p>
-              
-              <div className="grid md:grid-cols-3 gap-8 mt-12">
-                <motion.div 
-                  className="bg-card p-8 rounded-xl border-2 border-accent shadow-2xl hover:scale-105 transition-transform"
-                  whileHover={{ y: -5 }}
-                >
-                  <div className="text-5xl font-bold text-accent mb-2">9+</div>
-                  <div className="text-muted-foreground font-semibold">Industries Covered</div>
-                </motion.div>
-                <motion.div 
-                  className="bg-card p-8 rounded-xl border-2 border-accent shadow-2xl hover:scale-105 transition-transform"
-                  whileHover={{ y: -5 }}
-                >
-                  <div className="text-5xl font-bold text-accent mb-2">50+</div>
-                  <div className="text-muted-foreground font-semibold">Job Categories</div>
-                </motion.div>
-                <motion.div 
-                  className="bg-card p-8 rounded-xl border-2 border-accent shadow-2xl hover:scale-105 transition-transform"
-                  whileHover={{ y: -5 }}
-                >
-                  <div className="text-5xl font-bold text-accent mb-2">1000+</div>
-                  <div className="text-muted-foreground font-semibold">Placements Made</div>
-                </motion.div>
-              </div>
-            </motion.div>
+        {/* Who we serve */}
+        <section className="py-20">
+          <div className="container mx-auto px-4">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <p className="uppercase tracking-[0.2em] text-xs font-semibold text-primary mb-3">Who we work with</p>
+              <h2 className="text-3xl md:text-4xl font-bold">Hospitality Businesses Across India</h2>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {clientTypes.map((c) => (
+                <div key={c.title} className="text-center p-6">
+                  <c.icon className="w-10 h-10 mx-auto text-primary mb-4" />
+                  <h3 className="font-semibold text-lg mb-2">{c.title}</h3>
+                  <p className="text-sm text-muted-foreground">{c.text}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-20">
+        {/* CTA */}
+        <section className="pb-20">
           <div className="container mx-auto px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="relative text-primary-foreground rounded-2xl p-12 text-center overflow-hidden"
-            >
+            <div className="relative text-primary-foreground rounded-2xl p-12 text-center overflow-hidden">
               <div className="absolute inset-0">
-                <img src={ctaIndustriesTalent} alt="" className="w-full h-full object-cover"  loading="lazy" decoding="async" />
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary-dark/90" />
+                <img src={ctaIndustriesTalent} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/95 to-primary-dark/95" />
               </div>
               <div className="relative z-10">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Need Skilled Manpower for Your Industry?
-              </h2>
-              <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
-                Whether you need construction workers, healthcare professionals, engineers, hospitality staff, technicians 
-                or skilled manpower, Alba Enterprise can help you recruit qualified candidates for international projects.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a
-                  href="mailto:info@albaenterprise.in"
-                  className="inline-flex items-center justify-center h-11 px-8 rounded-md bg-background text-foreground hover:bg-background/90 transition-colors"
-                >
-                  Discuss Your Requirements
-                </a>
-                <a
-                  href="https://wa.me/918527881258"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center h-11 px-8 rounded-md border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary transition-colors"
-                >
-                  Chat on WhatsApp
-                </a>
+                <h2 className="text-3xl md:text-4xl font-bold mb-4">Need Staff for Your Property?</h2>
+                <p className="text-lg opacity-90 mb-8 max-w-2xl mx-auto">
+                  Whether it's one chef or a full pre-opening team, our recruiters are ready to help.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button size="lg" variant="secondary" asChild><Link to="/hire-staff">Submit Requirement</Link></Button>
+                  <Button size="lg" variant="outline" asChild className="bg-transparent text-white border-white/60 hover:bg-white hover:text-primary">
+                    <a href={SITE.whatsappHref} target="_blank" rel="noopener noreferrer">Chat on WhatsApp</a>
+                  </Button>
+                </div>
               </div>
-              </div>
-            </motion.div>
+            </div>
           </div>
         </section>
       </div>

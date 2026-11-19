@@ -89,7 +89,7 @@ const Register = () => {
                 role === "recruiter" ? "bg-background shadow font-medium" : "text-muted-foreground"
               }`}
             >
-              Recruiter
+              Employer / Hotel
             </button>
           </div>
 
@@ -97,7 +97,7 @@ const Register = () => {
             {role === "recruiter" ? (
               <>
                 <div>
-                  <Label htmlFor="companyName">Company Name</Label>
+                  <Label htmlFor="companyName">Hotel / Company Name</Label>
                   <Input id="companyName" value={companyName} onChange={e => setCompanyName(e.target.value)} required />
                 </div>
                 <div>

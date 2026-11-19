@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { ScrollToTop, WhatsAppButton } from "@/components/SiteChrome";
 
 import Home from "./pages/Home";
 import About from "./pages/About";
@@ -15,12 +16,14 @@ import Industries from "./pages/Industries";
 import Contact from "./pages/Contact";
 import Vacancies from "./pages/Vacancies";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import HireStaff from "./pages/HireStaff";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
 import AdminJobs from "./pages/admin/AdminJobs";
 import AdminApplications from "./pages/admin/AdminApplications";
+import AdminEnquiries from "./pages/admin/AdminEnquiries";
 import RecruiterDashboard from "./pages/recruiter/RecruiterDashboard";
 
 import NotFound from "./pages/NotFound";
@@ -36,6 +39,8 @@ const App = () => (
 
         <BrowserRouter>
           <AuthProvider>
+            <ScrollToTop />
+            <WhatsAppButton />
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
@@ -44,6 +49,7 @@ const App = () => (
               <Route path="/industries" element={<Industries />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/vacancies" element={<Vacancies />} />
+              <Route path="/hire-staff" element={<HireStaff />} />
 
               {/* Privacy Policy */}
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
@@ -65,6 +71,15 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={["admin"]}>
                     <AdminApplications />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/admin/enquiries"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <AdminEnquiries />
                   </ProtectedRoute>
                 }
               />
