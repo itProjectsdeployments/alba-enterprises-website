@@ -6,17 +6,16 @@ export type Candidate = Database["public"]["Tables"]["crm_candidates"]["Row"];
 export type CandidateInsert = Database["public"]["Tables"]["crm_candidates"]["Insert"];
 export type Activity = Database["public"]["Tables"]["crm_activities"]["Row"];
 
+/** Overall candidate status. Progress on a specific job is tracked per application (see lib/hr/model). */
 export const CRM_STATUSES = [
   { value: "New", tone: "bg-slate-100 text-slate-700 border-slate-200" },
   { value: "Contacted", tone: "bg-sky-100 text-sky-800 border-sky-200" },
   { value: "Interested", tone: "bg-indigo-100 text-indigo-800 border-indigo-200" },
-  { value: "CV Shared", tone: "bg-violet-100 text-violet-800 border-violet-200" },
-  { value: "Interview Scheduled", tone: "bg-amber-100 text-amber-800 border-amber-200" },
-  { value: "Selected", tone: "bg-lime-100 text-lime-800 border-lime-200" },
-  { value: "Joined", tone: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  { value: "In Process", tone: "bg-amber-100 text-amber-800 border-amber-200" },
+  { value: "Placed", tone: "bg-emerald-100 text-emerald-800 border-emerald-200" },
   { value: "On Hold", tone: "bg-orange-100 text-orange-800 border-orange-200" },
   { value: "Not Interested", tone: "bg-zinc-100 text-zinc-600 border-zinc-200" },
-  { value: "Rejected", tone: "bg-rose-100 text-rose-800 border-rose-200" },
+  { value: "Not Suitable", tone: "bg-rose-100 text-rose-800 border-rose-200" },
 ] as const;
 
 export const STATUS_VALUES = CRM_STATUSES.map((s) => s.value) as string[];
@@ -24,7 +23,7 @@ export const statusTone = (s: string) =>
   CRM_STATUSES.find((x) => x.value === s)?.tone ?? "bg-muted text-muted-foreground border-border";
 
 /** Statuses that mean the candidate is still being worked on. */
-export const OPEN_STATUSES = ["New", "Contacted", "Interested", "CV Shared", "Interview Scheduled", "Selected", "On Hold"];
+export const OPEN_STATUSES = ["New", "Contacted", "Interested", "In Process", "On Hold"];
 
 export const CRM_SOURCES = [
   "WhatsApp", "Email", "Phone Call", "Website", "Job Portal", "Referral", "Walk-in", "Social Media", "Other",
@@ -57,7 +56,7 @@ export interface FieldDef {
 
 export const FIELDS: FieldDef[] = [
   { key: "full_name", label: "Name", kind: "text", width: 190, synonyms: ["name", "fullname", "candidatename", "candidate", "applicantname", "employeename", "firstname"] },
-  { key: "phone", label: "Phone", kind: "text", width: 140, synonyms: ["phone", "phoneno", "phonenumber", "mobile", "mobileno", "mobilenumber", "contact", "contactno", "contactnumber", "whatsapp", "whatsappno", "whatsappnumber", "cell", "number"] },
+  { key: "phone", label: "Phone", kind: "text", width: 170, synonyms: ["phone", "phoneno", "phonenumber", "mobile", "mobileno", "mobilenumber", "contact", "contactno", "contactnumber", "whatsapp", "whatsappno", "whatsappnumber", "cell", "number"] },
   { key: "email", label: "Email", kind: "text", width: 200, synonyms: ["email", "emailid", "emailaddress", "mail", "mailid"] },
   { key: "city", label: "City", kind: "text", width: 130, synonyms: ["city", "location", "currentlocation", "currentcity", "place", "state", "address", "preferredlocation"] },
   { key: "job_role", label: "Role / Position", kind: "text", width: 170, synonyms: ["role", "position", "designation", "jobrole", "jobtitle", "post", "appliedfor", "positionappliedfor", "profile", "currentdesignation", "title"] },
@@ -115,14 +114,12 @@ export const normalizeStatus = (v: string): string => {
   if (!s) return "New";
   const exact = STATUS_VALUES.find((x) => squash(x) === s);
   if (exact) return exact;
-  if (/join/.test(s)) return "Joined";
-  if (/select|offer/.test(s)) return "Selected";
-  if (/interview|schedul/.test(s)) return "Interview Scheduled";
-  if (/cvshar|shared|forward/.test(s)) return "CV Shared";
+  if (/join|placed/.test(s)) return "Placed";
+  if (/select|offer|interview|schedul|cvshar|shared|forward|process|shortlist/.test(s)) return "In Process";
   if (/notinterest|declin/.test(s)) return "Not Interested";
-  if (/reject|unfit|notsuit/.test(s)) return "Rejected";
+  if (/reject|unfit|notsuit/.test(s)) return "Not Suitable";
   if (/hold|later|pending/.test(s)) return "On Hold";
-  if (/interest|keen|shortlist/.test(s)) return "Interested";
+  if (/interest|keen/.test(s)) return "Interested";
   if (/contact|called|spoke|talk/.test(s)) return "Contacted";
   return "New";
 };

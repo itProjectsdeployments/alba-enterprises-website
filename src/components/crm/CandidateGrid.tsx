@@ -30,6 +30,8 @@ interface Props {
   onBulkDelete: (ids: string[]) => Promise<void>;
   onFilteredChange?: (rows: Candidate[]) => void;
   actions?: ReactNode;
+  /** Extra buttons shown in the bar when rows are selected. */
+  bulkActions?: (ids: string[]) => ReactNode;
 }
 
 const PAGE_SIZE = 50;
@@ -153,7 +155,7 @@ const EditableCell = ({ field, value, onCommit }: { field: FieldDef; value: stri
 /* ---------------- Grid ---------------- */
 
 const CandidateGrid = ({
-  candidates, filters, onFiltersChange, onUpdate, onCreate, onOpen, onBulkUpdate, onBulkDelete, onFilteredChange, actions,
+  candidates, filters, onFiltersChange, onUpdate, onCreate, onOpen, onBulkUpdate, onBulkDelete, onFilteredChange, actions, bulkActions,
 }: Props) => {
   const [sort, setSort] = useState<{ key: keyof Candidate; dir: "asc" | "desc" }>({ key: "created_at", dir: "desc" });
   const [page, setPage] = useState(0);
@@ -214,8 +216,9 @@ const CandidateGrid = ({
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex flex-col xl:flex-row gap-3 xl:items-center">
-        <div className="relative flex-1 min-w-[220px]">
+      <div className="flex flex-wrap gap-2 justify-end">{actions}</div>
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-[260px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input className="pl-9" placeholder="Search name, phone, email, city, role, notes, tags..." value={filters.search} onChange={(e) => setF({ search: e.target.value })} />
         </div>
@@ -258,7 +261,6 @@ const CandidateGrid = ({
             </Button>
           )}
         </div>
-        <div className="flex flex-wrap gap-2 xl:ml-auto">{actions}</div>
       </div>
 
       {/* Bulk bar */}
@@ -279,6 +281,7 @@ const CandidateGrid = ({
             className="border rounded px-2 py-1 bg-background"
             title="Set follow-up date"
           />
+          {bulkActions?.(selIds)}
           <Button size="sm" variant="ghost" className="text-destructive" onClick={async () => { await onBulkDelete(selIds); setSelected(new Set()); }}>
             <Trash2 className="w-4 h-4 mr-1" /> Delete
           </Button>

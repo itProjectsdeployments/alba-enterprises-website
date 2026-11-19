@@ -1,10 +1,12 @@
+import { lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { ScrollToTop, WhatsAppButton } from "@/components/SiteChrome";
 
@@ -25,11 +27,20 @@ import AdminJobs from "./pages/admin/AdminJobs";
 import AdminApplications from "./pages/admin/AdminApplications";
 import AdminEnquiries from "./pages/admin/AdminEnquiries";
 import RecruiterDashboard from "./pages/recruiter/RecruiterDashboard";
-import HrPortal from "./pages/hr/HrPortal";
+// The HR workspace is loaded only when someone opens /hr, keeping the public site light.
+const HrApp = lazy(() => import("./pages/hr/HrApp"));
 
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+/** HR staff only ever see their workspace: any website URL sends them back to /hr. */
+const HrLock = ({ children }: { children: React.ReactNode }) => {
+  const { profile } = useAuth();
+  const { pathname } = useLocation();
+  if (profile?.role === "hr" && !pathname.startsWith("/hr")) return <Navigate to="/hr" replace />;
+  return <>{children}</>;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -42,6 +53,7 @@ const App = () => (
           <AuthProvider>
             <ScrollToTop />
             <WhatsAppButton />
+            <HrLock>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
@@ -61,7 +73,7 @@ const App = () => (
               <Route
                 path="/admin/jobs"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "hr"]}>
+                  <ProtectedRoute allowedRoles={["admin"]}>
                     <AdminJobs />
                   </ProtectedRoute>
                 }
@@ -70,7 +82,7 @@ const App = () => (
               <Route
                 path="/admin/applications"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "hr"]}>
+                  <ProtectedRoute allowedRoles={["admin"]}>
                     <AdminApplications />
                   </ProtectedRoute>
                 }
@@ -79,18 +91,19 @@ const App = () => (
               <Route
                 path="/admin/enquiries"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "hr"]}>
+                  <ProtectedRoute allowedRoles={["admin"]}>
                     <AdminEnquiries />
                   </ProtectedRoute>
                 }
               />
 
+              {/* HR workspace: own login and layout, no public website chrome */}
               <Route
-                path="/hr"
+                path="/hr/*"
                 element={
-                  <ProtectedRoute allowedRoles={["admin", "hr"]}>
-                    <HrPortal />
-                  </ProtectedRoute>
+                  <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
+                    <HrApp />
+                  </Suspense>
                 }
               />
 
@@ -106,6 +119,7 @@ const App = () => (
               {/* Keep this route last */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </HrLock>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

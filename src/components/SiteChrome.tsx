@@ -14,7 +14,7 @@ export const ScrollToTop = () => {
 /** Floating WhatsApp button on public pages. */
 export const WhatsAppButton = () => {
   const { pathname } = useLocation();
-  if (pathname.startsWith("/admin") || pathname.startsWith("/recruiter")) return null;
+  if (pathname.startsWith("/admin") || pathname.startsWith("/recruiter") || pathname.startsWith("/hr")) return null;
   return (
     <a
       href={`${SITE.whatsappHref}?text=${encodeURIComponent("Hello Alba Enterprise, I have an enquiry.")}`}

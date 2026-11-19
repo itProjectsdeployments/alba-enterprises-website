@@ -100,7 +100,10 @@ export type Database = {
       crm_activities: {
         Row: {
           id: string
-          candidate_id: string
+          candidate_id: string | null
+          job_id: string | null
+          client_id: string | null
+          application_id: string | null
           kind: string
           content: string
           created_by: string | null
@@ -109,7 +112,10 @@ export type Database = {
         }
         Insert: {
           id?: string
-          candidate_id: string
+          candidate_id?: string | null
+          job_id?: string | null
+          client_id?: string | null
+          application_id?: string | null
           kind?: string
           content: string
           created_by?: string | null
@@ -118,22 +124,83 @@ export type Database = {
         }
         Update: {
           id?: string
-          candidate_id?: string
+          candidate_id?: string | null
+          job_id?: string | null
+          client_id?: string | null
+          application_id?: string | null
           kind?: string
           content?: string
           created_by?: string | null
           created_by_email?: string | null
           created_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "crm_activities_candidate_id_fkey"
-            columns: ["candidate_id"]
-            isOneToOne: false
-            referencedRelation: "crm_candidates"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      crm_applications: {
+        Row: {
+          id: string
+          job_id: string
+          candidate_id: string
+          stage: string
+          score_skill: number | null
+          score_experience: number | null
+          score_communication: number | null
+          score_grooming: number | null
+          screening_notes: string | null
+          cv_sent_at: string | null
+          offer_salary: string | null
+          offer_date: string | null
+          offer_status: string | null
+          joining_date: string | null
+          joined_on: string | null
+          rejection_reason: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          job_id: string
+          candidate_id: string
+          stage?: string
+          score_skill?: number | null
+          score_experience?: number | null
+          score_communication?: number | null
+          score_grooming?: number | null
+          screening_notes?: string | null
+          cv_sent_at?: string | null
+          offer_salary?: string | null
+          offer_date?: string | null
+          offer_status?: string | null
+          joining_date?: string | null
+          joined_on?: string | null
+          rejection_reason?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          job_id?: string
+          candidate_id?: string
+          stage?: string
+          score_skill?: number | null
+          score_experience?: number | null
+          score_communication?: number | null
+          score_grooming?: number | null
+          screening_notes?: string | null
+          cv_sent_at?: string | null
+          offer_salary?: string | null
+          offer_date?: string | null
+          offer_status?: string | null
+          joining_date?: string | null
+          joined_on?: string | null
+          rejection_reason?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       crm_candidates: {
         Row: {
@@ -210,6 +277,306 @@ export type Database = {
           tags?: string[]
           extra?: Json
           source_ref?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_clients: {
+        Row: {
+          id: string
+          name: string
+          property_type: string | null
+          city: string | null
+          address: string | null
+          contact_person: string | null
+          contact_designation: string | null
+          contact_phone: string | null
+          contact_email: string | null
+          terms: string | null
+          status: string
+          notes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          property_type?: string | null
+          city?: string | null
+          address?: string | null
+          contact_person?: string | null
+          contact_designation?: string | null
+          contact_phone?: string | null
+          contact_email?: string | null
+          terms?: string | null
+          status?: string
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          property_type?: string | null
+          city?: string | null
+          address?: string | null
+          contact_person?: string | null
+          contact_designation?: string | null
+          contact_phone?: string | null
+          contact_email?: string | null
+          terms?: string | null
+          status?: string
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_documents: {
+        Row: {
+          id: string
+          candidate_id: string
+          doc_type: string
+          status: string
+          file_path: string | null
+          notes: string | null
+          verified_at: string | null
+          verified_by_email: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          candidate_id: string
+          doc_type: string
+          status?: string
+          file_path?: string | null
+          notes?: string | null
+          verified_at?: string | null
+          verified_by_email?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          candidate_id?: string
+          doc_type?: string
+          status?: string
+          file_path?: string | null
+          notes?: string | null
+          verified_at?: string | null
+          verified_by_email?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_followups: {
+        Row: {
+          id: string
+          application_id: string
+          title: string
+          due_date: string
+          status: string
+          candidate_feedback: string | null
+          client_feedback: string | null
+          satisfaction: number | null
+          notes: string | null
+          done_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          application_id: string
+          title: string
+          due_date: string
+          status?: string
+          candidate_feedback?: string | null
+          client_feedback?: string | null
+          satisfaction?: number | null
+          notes?: string | null
+          done_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          application_id?: string
+          title?: string
+          due_date?: string
+          status?: string
+          candidate_feedback?: string | null
+          client_feedback?: string | null
+          satisfaction?: number | null
+          notes?: string | null
+          done_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_interviews: {
+        Row: {
+          id: string
+          application_id: string
+          kind: string
+          mode: string
+          scheduled_at: string
+          location: string | null
+          interviewer: string | null
+          status: string
+          result: string
+          feedback: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          application_id: string
+          kind?: string
+          mode?: string
+          scheduled_at: string
+          location?: string | null
+          interviewer?: string | null
+          status?: string
+          result?: string
+          feedback?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          application_id?: string
+          kind?: string
+          mode?: string
+          scheduled_at?: string
+          location?: string | null
+          interviewer?: string | null
+          status?: string
+          result?: string
+          feedback?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_jobs: {
+        Row: {
+          id: string
+          client_id: string | null
+          title: string
+          department: string | null
+          level: string | null
+          openings: number
+          location: string | null
+          salary_range: string | null
+          experience_required: string | null
+          shift: string | null
+          benefits: string | null
+          skills: string | null
+          description: string | null
+          target_date: string | null
+          priority: string
+          status: string
+          public_job_id: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id?: string | null
+          title: string
+          department?: string | null
+          level?: string | null
+          openings?: number
+          location?: string | null
+          salary_range?: string | null
+          experience_required?: string | null
+          shift?: string | null
+          benefits?: string | null
+          skills?: string | null
+          description?: string | null
+          target_date?: string | null
+          priority?: string
+          status?: string
+          public_job_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string | null
+          title?: string
+          department?: string | null
+          level?: string | null
+          openings?: number
+          location?: string | null
+          salary_range?: string | null
+          experience_required?: string | null
+          shift?: string | null
+          benefits?: string | null
+          skills?: string | null
+          description?: string | null
+          target_date?: string | null
+          priority?: string
+          status?: string
+          public_job_id?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_tasks: {
+        Row: {
+          id: string
+          title: string
+          due_date: string | null
+          priority: string
+          done: boolean
+          candidate_id: string | null
+          job_id: string | null
+          client_id: string | null
+          notes: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          due_date?: string | null
+          priority?: string
+          done?: boolean
+          candidate_id?: string | null
+          job_id?: string | null
+          client_id?: string | null
+          notes?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          due_date?: string | null
+          priority?: string
+          done?: boolean
+          candidate_id?: string | null
+          job_id?: string | null
+          client_id?: string | null
+          notes?: string | null
           created_by?: string | null
           created_at?: string
           updated_at?: string
