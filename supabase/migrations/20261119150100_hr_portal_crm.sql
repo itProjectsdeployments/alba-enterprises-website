@@ -76,6 +76,10 @@ CREATE TRIGGER protect_profile_privileges
   BEFORE INSERT OR UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.protect_profile_privileges();
 
+-- Allow the HR role on profiles (the original check only listed admin/recruiter/worker).
+ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role = ANY (ARRAY['admin', 'recruiter', 'worker', 'hr']));
+
 -- 4. CRM tables -------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION public.crm_touch_updated_at()
