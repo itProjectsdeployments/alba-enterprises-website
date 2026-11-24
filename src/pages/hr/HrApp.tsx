@@ -19,6 +19,7 @@ import CandidateProfile from "./CandidateProfile";
 import { Screening, Interviews, Documents, Offers, Followups } from "./Steps";
 import { Pipeline, Clients, ClientDetail, Tasks, Reports } from "./Workspace";
 import { Inbox, WebsiteJobs } from "./Website";
+import GoogleForms from "./GoogleForms";
 
 const FullScreen = ({ children }: { children: React.ReactNode }) => (
   <div className="min-h-screen flex items-center justify-center bg-[hsl(210_25%_97%)] p-6">{children}</div>
@@ -81,6 +82,7 @@ export const HrShell = () => {
             <Route path="clients/:id" element={<ClientDetail />} />
             <Route path="tasks" element={<Tasks />} />
             <Route path="inbox" element={<Inbox />} />
+            <Route path="google-forms" element={<GoogleForms />} />
             <Route path="website-jobs" element={<WebsiteJobs />} />
             <Route path="reports" element={<Reports />} />
             <Route path="*" element={<Navigate to="/hr" replace />} />

@@ -1,0 +1,161 @@
+// Receives Google Form responses (sent by an Apps Script on the response sheet)
+// and adds them to the HR CRM as candidates.
+// Deploy with: supabase functions deploy form-intake --no-verify-jwt
+//
+// Body: { token, form, sheet_id, sheet_name, rows: [{ row, data: { "<question>": "<answer>" } }] }
+// - token must match crm_settings.form_intake_token
+// - each row is imported once (source_ref = gform:<sheet_id>:<sheet_name>:<row>)
+// - an existing candidate with the same phone/email is not duplicated; they are
+//   just linked to the requirement and get an activity note
+// - if a requirement's "Google Form name" matches the form title, the candidate is
+//   added to that requirement's pipeline at the Sourced stage
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Content-Type": "application/json",
+};
+const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), { status, headers: cors });
+
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+const FIELDS: [string, string[]][] = [
+  ["full_name", ["name", "fullname", "candidatename", "yourname", "applicantname", "firstname"]],
+  ["phone", ["phone", "phoneno", "phonenumber", "mobile", "mobileno", "mobilenumber", "contact", "contactno", "contactnumber", "whatsapp", "whatsappno", "whatsappnumber"]],
+  ["email", ["email", "emailid", "emailaddress", "mail", "mailid"]],
+  ["city", ["city", "location", "currentlocation", "currentcity", "place", "state", "address"]],
+  ["job_role", ["role", "position", "designation", "jobrole", "jobtitle", "post", "appliedfor", "positionappliedfor", "currentdesignation"]],
+  ["department", ["department", "dept", "category"]],
+  ["experience", ["experience", "exp", "totalexperience", "yearsofexperience", "workexperience", "totalexp"]],
+  ["current_employer", ["currentemployer", "employer", "company", "currentcompany", "hotel", "currenthotel", "lastemployer"]],
+  ["current_salary", ["currentsalary", "salary", "currentctc", "ctc", "lastdrawnsalary"]],
+  ["expected_salary", ["expectedsalary", "expectedctc", "ectc", "expected"]],
+  ["notice_period", ["noticeperiod", "notice", "availability", "canjoin", "joiningtime"]],
+  ["cv_url", ["cv", "resume", "uploadcv", "uploadresume", "uploadyourcv", "uploadyourresume", "cvlink", "resumelink"]],
+];
+
+const guess = (header: string): string | null => {
+  const h = squash(header);
+  if (!h) return null;
+  for (const [k, syn] of FIELDS) if (syn.includes(h)) return k;
+  for (const [k, syn] of FIELDS) if (syn.some((s) => s.length > 3 && h.includes(s))) return k;
+  return null;
+};
+
+const phoneKey = (p?: string | null) => {
+  const d = (p || "").replace(/\D/g, "");
+  return d.length >= 10 ? d.slice(-10) : d;
+};
+const cleanPhone = (p: string) => {
+  const d = p.replace(/\D/g, "");
+  if (d.length === 10) return `+91 ${d.slice(0, 5)} ${d.slice(5)}`;
+  if (d.length === 12 && d.startsWith("91")) return `+91 ${d.slice(2, 7)} ${d.slice(7)}`;
+  return p.trim();
+};
+
+const safeEqual = (a: string, b: string) => {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return json({ error: "POST only" }, 405);
+
+  try {
+    const body = await req.json();
+    const { token, form, sheet_id, sheet_name } = body ?? {};
+    const rows: { row: number; data: Record<string, unknown> }[] = Array.isArray(body?.rows) ? body.rows : [];
+    if (typeof token !== "string" || !rows.length) return json({ error: "token and rows are required" }, 400);
+    if (rows.length > 500) return json({ error: "Send at most 500 rows per request" }, 400);
+
+    const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+
+    const { data: setting } = await db.from("crm_settings").select("value").eq("key", "form_intake_token").maybeSingle();
+    if (!setting?.value || !safeEqual(token, setting.value)) return json({ error: "Invalid token" }, 401);
+
+    const formTitle = String(form || sheet_name || "Google Form").slice(0, 200);
+    const { data: jobs } = await db.from("crm_jobs").select("id, title, intake_key, status").not("intake_key", "is", null);
+    const job = (jobs || []).find((j) => squash(j.intake_key || "") && squash(j.intake_key || "") === squash(formTitle))
+      ?? (jobs || []).find((j) => squash(j.intake_key || "") && squash(formTitle).includes(squash(j.intake_key || "")));
+
+    // Existing candidates for duplicate detection.
+    const { data: existing } = await db.from("crm_candidates").select("id, phone, email, source_ref").limit(20000);
+    const byPhone = new Map<string, string>();
+    const byEmail = new Map<string, string>();
+    const refs = new Set<string>();
+    (existing || []).forEach((c) => {
+      const k = phoneKey(c.phone);
+      if (k.length >= 10) byPhone.set(k, c.id);
+      if (c.email) byEmail.set(String(c.email).toLowerCase(), c.id);
+      if (c.source_ref) refs.add(c.source_ref);
+    });
+
+    let added = 0, matched = 0, skipped = 0, linked = 0;
+    for (const { row, data } of rows) {
+      const ref = `gform:${sheet_id ?? "?"}:${sheet_name ?? "?"}:${row}`.slice(0, 300);
+      if (refs.has(ref)) { skipped++; continue; }
+
+      const rec: Record<string, unknown> = { source: "Google Form", status: "New", source_ref: ref };
+      const extra: Record<string, string> = { "Google Form": formTitle };
+      const notes: string[] = [];
+      for (const [header, raw] of Object.entries(data || {})) {
+        const value = raw == null ? "" : String(raw).trim();
+        if (!value) continue;
+        if (/^timestamp$/i.test(header.trim())) { extra["Submitted at"] = value; continue; }
+        const key = guess(header);
+        if (key && rec[key] == null) {
+          if (key === "phone") rec.phone = cleanPhone(value);
+          else if (key === "cv_url") { if (/^https?:\/\//i.test(value)) rec.cv_url = value.split(",")[0].trim(); else extra[header] = value; }
+          else rec[key] = value.slice(0, 2000);
+        } else {
+          extra[header.slice(0, 120)] = value.slice(0, 2000);
+          if (/remark|comment|message|anything|note/i.test(header)) notes.push(value);
+        }
+      }
+      if (!rec.full_name) {
+        const fallback = (rec.phone as string) || (rec.email as string);
+        if (!fallback) { skipped++; continue; }
+        rec.full_name = `Unknown (${fallback})`;
+      }
+      if (notes.length) rec.notes = notes.join("\n");
+      rec.extra = extra;
+
+      const pk = phoneKey(rec.phone as string);
+      const ek = ((rec.email as string) || "").toLowerCase();
+      let candidateId = (pk.length >= 10 && byPhone.get(pk)) || (ek && byEmail.get(ek)) || null;
+
+      if (candidateId) {
+        matched++;
+        await db.from("crm_activities").insert({ candidate_id: candidateId, kind: "note", content: `Applied again via Google Form "${formTitle}"`, created_by_email: "Google Form" });
+      } else {
+        const { data: ins, error } = await db.from("crm_candidates").insert(rec).select("id").single();
+        if (error) { if (error.code === "23505") { skipped++; continue; } throw error; }
+        candidateId = ins.id;
+        added++;
+        if (pk.length >= 10) byPhone.set(pk, candidateId!);
+        if (ek) byEmail.set(ek, candidateId!);
+        await db.from("crm_activities").insert({ candidate_id: candidateId, kind: "note", content: `Applied via Google Form "${formTitle}"`, created_by_email: "Google Form" });
+      }
+      refs.add(ref);
+
+      if (job && candidateId) {
+        const { data: app } = await db.from("crm_applications")
+          .upsert({ job_id: job.id, candidate_id: candidateId, stage: "Sourced" }, { onConflict: "job_id,candidate_id", ignoreDuplicates: true })
+          .select("id");
+        if (app?.length) {
+          linked++;
+          await db.from("crm_candidates").update({ status: "In Process" }).eq("id", candidateId).in("status", ["New", "Contacted", "Interested"]);
+        }
+      }
+    }
+
+    return json({ success: true, form: formTitle, requirement: job?.title ?? null, added, matched_existing: matched, skipped, added_to_requirement: linked });
+  } catch (err) {
+    console.error("form-intake error:", err);
+    return json({ error: String((err as Error)?.message ?? err) }, 500);
+  }
+});

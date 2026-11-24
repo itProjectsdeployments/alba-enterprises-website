@@ -472,6 +472,7 @@ export type Database = {
       crm_jobs: {
         Row: {
           id: string
+          intake_key: string | null
           client_id: string | null
           title: string
           department: string | null
@@ -494,6 +495,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          intake_key?: string | null
           client_id?: string | null
           title: string
           department?: string | null
@@ -516,6 +518,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          intake_key?: string | null
           client_id?: string | null
           title?: string
           department?: string | null
@@ -534,6 +537,24 @@ export type Database = {
           public_job_id?: string | null
           created_by?: string | null
           created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_settings: {
+        Row: {
+          key: string
+          value: string
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          value: string
+          updated_at?: string
+        }
+        Update: {
+          key?: string
+          value?: string
           updated_at?: string
         }
         Relationships: []

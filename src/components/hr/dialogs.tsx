@@ -92,7 +92,7 @@ export const JobDialog = ({ open, onOpenChange, initial, onSaved, onNewClient }:
     const data = clean({
       client_id: f.client_id || null, title: f.title, department: f.department, level: f.level, openings: Math.max(1, Number(f.openings) || 1),
       location: f.location, salary_range: f.salary_range, experience_required: f.experience_required, shift: f.shift, benefits: f.benefits,
-      skills: f.skills, description: f.description, target_date: f.target_date || null, priority: f.priority || "Normal", status: f.status || "Open",
+      skills: f.skills, description: f.description, intake_key: f.intake_key, target_date: f.target_date || null, priority: f.priority || "Normal", status: f.status || "Open",
     });
     const row = await run(async () => {
       if (initial?.id) return updateRow<Job>("crm_jobs", initial.id, data);
@@ -134,6 +134,7 @@ export const JobDialog = ({ open, onOpenChange, initial, onSaved, onNewClient }:
           <F label="Target joining date"><Input type="date" value={f.target_date ?? ""} onChange={(e) => set("target_date", e.target.value)} /></F>
           <F label="Status"><NativeSelect value={f.status} onChange={(v) => set("status", v)} options={JOB_STATUSES} /></F>
           <F label="Key skills / must-haves" className="sm:col-span-3"><Input value={f.skills ?? ""} onChange={(e) => set("skills", e.target.value)} placeholder="e.g. Opera PMS, fluent English, tandoor experience" /></F>
+          <F label="Google Form name (auto-add applicants)" className="sm:col-span-3"><Input value={f.intake_key ?? ""} onChange={(e) => set("intake_key", e.target.value)} placeholder="Exact title of the Google Form for this job, e.g. Commis I – Goa Hiring" /></F>
           <F label="Job description & notes from client" className="sm:col-span-3"><Textarea rows={4} value={f.description ?? ""} onChange={(e) => set("description", e.target.value)} /></F>
         </div>
         <DialogFooter><Button onClick={save} disabled={busy || !f.title?.trim()}>{busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Save requirement</Button></DialogFooter>

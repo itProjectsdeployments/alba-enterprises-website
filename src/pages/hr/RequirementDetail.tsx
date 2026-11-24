@@ -140,6 +140,7 @@ const RequirementDetail = () => {
             <Info label="Benefits" value={job.benefits} />
             <Info label="Target joining" value={job.target_date ? formatDate(job.target_date) : null} />
             <Info label="Created" value={formatDate(job.created_at)} />
+            <Info label="Google Form (auto-import)" value={job.intake_key} />
           </div>
           {job.skills && <div className="mt-4"><p className="text-xs text-muted-foreground">Key skills / must-haves</p><p className="text-sm">{job.skills}</p></div>}
           {job.description && <div className="mt-4"><p className="text-xs text-muted-foreground">Description & client notes</p><p className="text-sm whitespace-pre-wrap">{job.description}</p></div>}

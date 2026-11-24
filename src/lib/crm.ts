@@ -26,7 +26,7 @@ export const statusTone = (s: string) =>
 export const OPEN_STATUSES = ["New", "Contacted", "Interested", "In Process", "On Hold"];
 
 export const CRM_SOURCES = [
-  "WhatsApp", "Email", "Phone Call", "Website", "Job Portal", "Referral", "Walk-in", "Social Media", "Other",
+  "WhatsApp", "Google Form", "Email", "Phone Call", "Website", "Job Portal", "Referral", "Walk-in", "Social Media", "Other",
 ];
 
 export const DEPARTMENT_NAMES = DEPARTMENTS.map((d) => d.title);
@@ -128,6 +128,7 @@ export const normalizeSource = (v: string, fallback = "Other"): string => {
   const s = squash(v);
   if (!s) return fallback;
   if (/whatsapp|wa$/.test(s)) return "WhatsApp";
+  if (/googleform|gform|form/.test(s)) return "Google Form";
   if (/mail/.test(s)) return "Email";
   if (/call|phone/.test(s)) return "Phone Call";
   if (/website|site|web/.test(s)) return "Website";

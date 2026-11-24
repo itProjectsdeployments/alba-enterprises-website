@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, KanbanSquare, Building2, ListTodo, Inbox, Globe, BarChart3, Menu, Search, Plus, LogOut, ChevronDown,
-  Briefcase, UserPlus, CalendarPlus, FileSpreadsheet, User,
+  Briefcase, UserPlus, CalendarPlus, FileSpreadsheet, User, ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -121,6 +121,7 @@ const HrLayout = ({ children, onImport }: Props) => {
           <div className="space-y-1">
             <NavItem to="/hr/clients" icon={Building2} label="Clients" onClick={close} />
             <NavItem to="/hr/tasks" icon={ListTodo} label="Tasks" badge={counts.tasks} onClick={close} />
+            <NavItem to="/hr/google-forms" icon={ClipboardList} label="Google Form leads" onClick={close} />
             <NavItem to="/hr/inbox" icon={Inbox} label="Website leads" onClick={close} />
             <NavItem to="/hr/website-jobs" icon={Globe} label="Website job posts" onClick={close} />
             <NavItem to="/hr/reports" icon={BarChart3} label="Reports" onClick={close} />
