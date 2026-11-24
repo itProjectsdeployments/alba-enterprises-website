@@ -34,7 +34,7 @@ const Requirements = () => {
         step={1}
         title="Requirement Analysis"
         subtitle="Every vacancy a client shares: property, department, positions and timelines. Open one to manage its candidates."
-        actions={<Button onClick={() => ui.openNewJob()}><Plus className="w-4 h-4 mr-1" />New requirement</Button>}
+        actions={<><Button variant="outline" onClick={() => ui.openBulkJobs()}><Plus className="w-4 h-4 mr-1" />Add multiple positions</Button><Button onClick={() => ui.openNewJob()}><Plus className="w-4 h-4 mr-1" />New requirement</Button></>}
       />
 
       <div className="flex flex-wrap gap-2 mb-5">

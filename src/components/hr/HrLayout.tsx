@@ -178,6 +178,7 @@ const HrLayout = ({ children, onImport }: Props) => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem onClick={() => ui.openNewJob()}><Briefcase className="w-4 h-4 mr-2" />Requirement</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => ui.openBulkJobs()}><Briefcase className="w-4 h-4 mr-2" />Multiple positions (paste)</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => ui.openNewCandidate()}><UserPlus className="w-4 h-4 mr-2" />Candidate</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => ui.openNewClient()}><Building2 className="w-4 h-4 mr-2" />Client</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => ui.openSchedule()}><CalendarPlus className="w-4 h-4 mr-2" />Interview / trial</DropdownMenuItem>

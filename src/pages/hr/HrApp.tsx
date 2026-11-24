@@ -11,6 +11,7 @@ import HrLogin from "@/components/hr/HrLogin";
 import ApplicationSheet from "@/components/hr/ApplicationSheet";
 import { AddToJobDialog, CandidateDialog, ClientDialog, JobDialog, ScheduleDialog, TaskDialog } from "@/components/hr/dialogs";
 import ImportDialog from "@/components/crm/ImportDialog";
+import BulkJobsDialog from "@/components/hr/BulkJobsDialog";
 import Dashboard from "./Dashboard";
 import Requirements from "./Requirements";
 import RequirementDetail from "./RequirementDetail";
@@ -41,6 +42,7 @@ export const HrShell = () => {
   const [appId, setAppId] = useState<string | null>(params.get("app"));
   const [job, setJob] = useState<{ open: boolean; clientId?: string }>({ open: false });
   const [clientOpen, setClientOpen] = useState(false);
+  const [bulk, setBulk] = useState<{ open: boolean; clientId?: string }>({ open: false });
   const [candOpen, setCandOpen] = useState(false);
   const [task, setTask] = useState<{ open: boolean; preset?: { candidate_id?: string; job_id?: string; client_id?: string } }>({ open: false });
   const [addTo, setAddTo] = useState<{ open: boolean; jobId?: string; candidateIds?: string[] }>({ open: false });
@@ -51,6 +53,7 @@ export const HrShell = () => {
     openApplication: (id) => setAppId(id),
     openNewJob: (clientId) => setJob({ open: true, clientId }),
     openNewClient: () => setClientOpen(true),
+    openBulkJobs: (clientId) => setBulk({ open: true, clientId }),
     openNewCandidate: () => setCandOpen(true),
     openNewTask: (preset) => setTask({ open: true, preset }),
     openAddToJob: (o) => setAddTo({ open: true, ...o }),
@@ -94,6 +97,7 @@ export const HrShell = () => {
       <JobDialog open={job.open} onOpenChange={(v) => setJob({ open: v })} initial={job.clientId ? { client_id: job.clientId } : null}
         onNewClient={() => setClientOpen(true)} onSaved={(j) => navigate(`/hr/requirements/${j.id}`)} />
       <ClientDialog open={clientOpen} onOpenChange={setClientOpen} />
+      <BulkJobsDialog open={bulk.open} onOpenChange={(v) => setBulk((b) => ({ ...b, open: v }))} clientId={bulk.clientId} />
       <CandidateDialog open={candOpen} onOpenChange={setCandOpen} onSaved={(c) => navigate(`/hr/candidates/${c.id}`)} />
       <TaskDialog open={task.open} onOpenChange={(v) => setTask({ open: v })} initial={task.preset ?? null} />
       <AddToJobDialog open={addTo.open} onOpenChange={(v) => setAddTo({ open: v })} jobId={addTo.jobId} candidateIds={addTo.candidateIds} />

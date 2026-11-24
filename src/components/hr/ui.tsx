@@ -110,6 +110,7 @@ export const useAction = () => {
 export interface HrUi {
   openApplication: (id: string) => void;
   openNewJob: (clientId?: string) => void;
+  openBulkJobs: (clientId?: string) => void;
   openNewClient: () => void;
   openNewCandidate: () => void;
   openNewTask: (preset?: { candidate_id?: string; job_id?: string; client_id?: string }) => void;

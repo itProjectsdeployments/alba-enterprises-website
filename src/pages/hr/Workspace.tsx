@@ -112,7 +112,8 @@ export const ClientDetail = () => {
           <p className="text-muted-foreground">{[c.property_type, c.city, c.status].filter(Boolean).join(" · ")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => ui.openNewJob(c.id)}><Plus className="w-4 h-4 mr-1" />New requirement</Button>
+          <Button onClick={() => ui.openBulkJobs(c.id)}><Plus className="w-4 h-4 mr-1" />Add multiple positions</Button>
+          <Button variant="outline" onClick={() => ui.openNewJob(c.id)}><Plus className="w-4 h-4 mr-1" />New requirement</Button>
           <Button variant="outline" onClick={() => setEdit(true)}><Pencil className="w-4 h-4 mr-1" />Edit</Button>
           <Button variant="ghost" size="icon" onClick={() => ui.openNewTask({ client_id: c.id })} title="Add task"><ListTodo className="w-4 h-4" /></Button>
           <Button variant="ghost" size="icon" className="text-rose-700" onClick={remove} title="Delete"><Trash2 className="w-4 h-4" /></Button>

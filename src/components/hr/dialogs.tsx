@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Loader2, Search, Sparkles, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -16,13 +16,22 @@ import {
 } from "@/lib/hr/model";
 import { NativeSelect, Pill, useAction } from "./ui";
 
+/** Runs `fn` each time a dialog opens, but not on re-renders while it is open (so typing is never wiped). */
+export const useOpenReset = (open: boolean, fn: () => void) => {
+  const was = useRef(false);
+  useEffect(() => {
+    if (open && !was.current) fn();
+    was.current = open;
+  }); // eslint-disable-line react-hooks/exhaustive-deps
+};
+
 const ALL_ROLES = [...new Set(DEPARTMENTS.flatMap((d) => d.roles))];
 
-const F = ({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) => (
+export const F = ({ label, children, className = "" }: { label: string; children: ReactNode; className?: string }) => (
   <div className={className}><Label className="text-xs font-medium text-muted-foreground">{label}</Label><div className="mt-1">{children}</div></div>
 );
 
-const clean = (o: Record<string, unknown>) => {
+export const clean = (o: Record<string, unknown>) => {
   const out: Record<string, unknown> = {};
   Object.entries(o).forEach(([k, v]) => { out[k] = typeof v === "string" ? (v.trim() || null) : v; });
   return out;
@@ -36,7 +45,7 @@ export const ClientDialog = ({ open, onOpenChange, initial, onSaved }: Base<Clie
   const run = useAction();
   const [f, setF] = useState<Partial<Client>>({});
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (open) setF(initial ?? { status: "Active", property_type: "Hotel" }); }, [open, initial]);
+  useOpenReset(open, () => setF(initial ?? { status: "Active", property_type: "Hotel" }));
   const set = (k: keyof Client, v: unknown) => setF((p) => ({ ...p, [k]: v }));
 
   const save = async () => {
@@ -78,12 +87,14 @@ export const ClientDialog = ({ open, onOpenChange, initial, onSaved }: Base<Clie
 
 /* --------------------------------------------------------------------- Job */
 
-export const JobDialog = ({ open, onOpenChange, initial, onSaved, onNewClient }: Base<Job> & { onNewClient?: () => void }) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const JobDialog = ({ open, onOpenChange, initial, onSaved, onNewClient: _unused }: Base<Job> & { onNewClient?: () => void }) => {
   const run = useAction();
   const { clients } = useCrm();
   const [f, setF] = useState<Partial<Job>>({});
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (open) setF(initial?.id ? initial : { openings: 1, priority: "Normal", status: "Open", ...initial }); }, [open, initial]);
+  const [clientOpen, setClientOpen] = useState(false);
+  useOpenReset(open, () => setF(initial?.id ? initial : { openings: 1, priority: "Normal", status: "Open", ...initial }));
   const set = (k: keyof Job, v: unknown) => setF((p) => ({ ...p, [k]: v }));
 
   const save = async () => {
@@ -106,7 +117,7 @@ export const JobDialog = ({ open, onOpenChange, initial, onSaved, onNewClient }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>{initial?.id ? "Edit requirement" : "New requirement"}</DialogTitle>
           <DialogDescription>Step 1, Requirement Analysis: capture the property, department, position and timeline.</DialogDescription>
@@ -115,7 +126,7 @@ export const JobDialog = ({ open, onOpenChange, initial, onSaved, onNewClient }:
           <F label="Client / property" className="sm:col-span-2">
             <div className="flex gap-2">
               <NativeSelect value={f.client_id} onChange={(v) => set("client_id", v || null)} options={clients.map((c) => ({ value: c.id, label: `${c.name}${c.city ? ` · ${c.city}` : ""}` }))} placeholder="Select client (optional)" />
-              {onNewClient && <Button type="button" variant="outline" onClick={onNewClient}>New</Button>}
+              <Button type="button" variant="outline" onClick={() => setClientOpen(true)}>New client</Button>
             </div>
           </F>
           <F label="Priority"><NativeSelect value={f.priority} onChange={(v) => set("priority", v)} options={PRIORITIES} /></F>
@@ -138,6 +149,7 @@ export const JobDialog = ({ open, onOpenChange, initial, onSaved, onNewClient }:
           <F label="Job description & notes from client" className="sm:col-span-3"><Textarea rows={4} value={f.description ?? ""} onChange={(e) => set("description", e.target.value)} /></F>
         </div>
         <DialogFooter><Button onClick={save} disabled={busy || !f.title?.trim()}>{busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Save requirement</Button></DialogFooter>
+        <ClientDialog open={clientOpen} onOpenChange={setClientOpen} onSaved={(c) => set("client_id", c.id)} />
       </DialogContent>
     </Dialog>
   );
@@ -150,7 +162,7 @@ export const CandidateDialog = ({ open, onOpenChange, initial, onSaved }: Base<C
   const { candidates } = useCrm();
   const [f, setF] = useState<Partial<Candidate>>({});
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (open) setF(initial ?? { source: "WhatsApp", status: "New" }); }, [open, initial]);
+  useOpenReset(open, () => setF(initial ?? { source: "WhatsApp", status: "New" }));
   const set = (k: keyof Candidate, v: unknown) => setF((p) => ({ ...p, [k]: v }));
 
   const dup = useMemo(() => {
@@ -214,7 +226,7 @@ export const TaskDialog = ({ open, onOpenChange, initial, onSaved }: Base<Task>)
   const { candidates, jobs, clients } = useCrm();
   const [f, setF] = useState<Partial<Task>>({});
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (open) setF(initial?.id ? initial : { priority: "Normal", due_date: todayISO(), ...initial }); }, [open, initial]);
+  useOpenReset(open, () => setF(initial?.id ? initial : { priority: "Normal", due_date: todayISO(), ...initial }));
   const set = (k: keyof Task, v: unknown) => setF((p) => ({ ...p, [k]: v }));
 
   const save = async () => {
