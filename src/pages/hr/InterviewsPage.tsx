@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CalendarPlus, ChevronDown, ChevronRight, MessageCircle, MapPin, Video, Users } from "lucide-react";
+import { CalendarPlus, ChevronDown, ChevronRight, MessageCircle, MapPin, Video, Users, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -103,6 +103,16 @@ const InterviewsPage = () => {
     if (error) throw error;
   }, { success: `${ids.length} marked ${status}`, refresh: ["crm_interviews"] });
 
+  const remove = async (ids: string[]) => {
+    if (!ids.length || !confirm(ids.length === 1 ? "Delete this interview? The candidate stays on the vacancy." : `Delete ${ids.length} interviews? The candidates stay on the vacancy.`)) return;
+    const ok = await run(async () => {
+      const { error } = await supabase.from("crm_interviews").delete().in("id", ids);
+      if (error) throw error;
+      return true;
+    }, { success: ids.length === 1 ? "Interview deleted" : `${ids.length} interviews deleted`, refresh: ["crm_interviews"] });
+    if (ok) setSelected((p) => { const n = new Set(p); ids.forEach((id) => n.delete(id)); return n; });
+  };
+
   const bulkReschedule = async () => {
     if (!reschedule.when || !selIds.length) return;
     const start = new Date(reschedule.when).getTime();
@@ -169,7 +179,8 @@ const InterviewsPage = () => {
             <option value="0">same time</option><option value="10">every 10 min</option><option value="15">every 15 min</option><option value="30">every 30 min</option><option value="60">every hour</option>
           </select>
           <Button size="sm" onClick={bulkReschedule} disabled={!reschedule.when}>Apply</Button>
-          <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setSelected(new Set())}>Clear</Button>
+          <Button size="sm" variant="outline" className="text-rose-700 ml-auto" onClick={() => remove(selIds)}><Trash2 className="w-4 h-4 mr-1" />Delete</Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
         </div>
       )}
 
@@ -229,6 +240,7 @@ const InterviewsPage = () => {
                           )}
                           <div className="w-32"><NativeSelect value={i.status} onChange={(v) => setStatus([i.id], v)} options={INTERVIEW_STATUSES} className="h-9" /></div>
                           <div className="w-28"><NativeSelect value={i.result} onChange={(v) => setResult([i.id], v)} options={INTERVIEW_RESULTS} className={`h-9 ${RESULT_TONE[i.result] ?? ""}`} /></div>
+                          <Button size="icon" variant="ghost" className="h-9 w-9 text-muted-foreground hover:text-rose-700" onClick={() => remove([i.id])} title="Delete interview" aria-label={`Delete interview for ${c?.full_name}`}><Trash2 className="w-4 h-4" /></Button>
                         </div>
                       );
                     })}
