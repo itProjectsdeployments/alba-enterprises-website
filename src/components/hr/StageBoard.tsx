@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarClock, MapPin, Star } from "lucide-react";
+import { CalendarClock, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/crm";
 import { STAGES, type Application, moveStage, screeningScore, useCrm } from "@/lib/hr/model";
@@ -42,15 +42,15 @@ const StageBoard = ({ applications, showJob, hideClosed = true }: Props) => {
             onDragOver={(e) => { e.preventDefault(); setOver(s.value); }}
             onDragLeave={() => setOver((o) => (o === s.value ? null : o))}
             onDrop={(e) => { e.preventDefault(); setOver(null); drop(s.value, e.dataTransfer.getData("text/plain")); }}
-            className={`w-64 shrink-0 rounded-xl bg-muted/50 border flex flex-col max-h-[70vh] transition ${over === s.value ? "ring-2 ring-primary bg-primary/5" : ""}`}
+            className={`w-60 shrink-0 rounded-xl bg-muted/50 border flex flex-col h-[58vh] min-h-[320px] transition ${over === s.value ? "ring-2 ring-primary bg-primary/5" : ""}`}
           >
-            <div className="px-3 py-2.5 flex items-center gap-2 border-b">
+            <div className="px-3 py-2 flex items-center gap-2 border-b shrink-0">
               <span className={`w-2 h-2 rounded-full ${s.dot}`} />
               <span className="text-sm font-semibold flex-1 truncate">{s.value}</span>
               {s.step > 0 && <span className="text-[10px] text-muted-foreground">Step {s.step}</span>}
               <span className="text-xs font-bold bg-background rounded-full px-2 py-0.5 border">{items.length}</span>
             </div>
-            <div className="p-2 space-y-2 overflow-y-auto flex-1">
+            <div className="p-1.5 space-y-1.5 overflow-y-auto flex-1 min-h-0">
               {items.map((a) => {
                 const c = crm.candidate.get(a.candidate_id);
                 const j = crm.job.get(a.job_id);
@@ -62,18 +62,20 @@ const StageBoard = ({ applications, showJob, hideClosed = true }: Props) => {
                     draggable
                     onDragStart={(e) => e.dataTransfer.setData("text/plain", a.id)}
                     onClick={() => ui.openApplication(a.id)}
-                    className="w-full text-left rounded-lg bg-card border p-3 shadow-sm hover:shadow-md hover:border-primary/40 transition cursor-grab active:cursor-grabbing"
+                    className="w-full text-left rounded-md bg-card border px-2.5 py-1.5 shadow-sm hover:shadow hover:border-primary/40 transition cursor-grab active:cursor-grabbing"
+                    title={[c?.full_name, c?.phone, c?.job_role, c?.city].filter(Boolean).join(" · ")}
                   >
-                    <p className="text-sm font-semibold truncate">{c?.full_name ?? "Unknown"}</p>
-                    {showJob && j && <p className="text-xs text-primary truncate mt-0.5">{j.title}{j.client_id ? ` · ${crm.client.get(j.client_id)?.name ?? ""}` : ""}</p>}
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">{[c?.job_role, c?.experience].filter(Boolean).join(" · ") || " "}</p>
-                    <div className="flex items-center gap-2 mt-2 text-[11px] text-muted-foreground">
-                      {c?.city && <span className="flex items-center gap-0.5 truncate"><MapPin className="w-3 h-3" />{c.city}</span>}
-                      {score != null && <span className="flex items-center gap-0.5 ml-auto"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{score.toFixed(1)}</span>}
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[13px] font-semibold truncate flex-1">{c?.full_name ?? "Unknown"}</p>
+                      {score != null && <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground shrink-0"><Star className="w-3 h-3 fill-amber-400 text-amber-400" />{score.toFixed(1)}</span>}
                     </div>
-                    {iv && <p className="text-[11px] mt-1.5 text-amber-700 flex items-center gap-1"><CalendarClock className="w-3 h-3" />{iv.kind} · {new Date(iv.scheduled_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>}
-                    {a.stage === "Offer" && a.joining_date && <p className="text-[11px] mt-1.5 text-lime-700">Joining {formatDate(a.joining_date)}</p>}
-                    {(a.stage === "Rejected" || a.stage === "Dropped") && a.rejection_reason && <p className="text-[11px] mt-1.5 text-rose-700 truncate">{a.rejection_reason}</p>}
+                    <p className="text-[11px] text-muted-foreground truncate leading-tight">
+                      {showJob && j ? <span className="text-primary">{j.title} · </span> : null}
+                      {iv ? <span className="text-amber-700"><CalendarClock className="w-3 h-3 inline -mt-0.5 mr-0.5" />{new Date(iv.scheduled_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                        : a.stage === "Offer" && a.joining_date ? <span className="text-lime-700">Joining {formatDate(a.joining_date)}</span>
+                        : (a.stage === "Rejected" || a.stage === "Dropped") && a.rejection_reason ? <span className="text-rose-700">{a.rejection_reason}</span>
+                        : [c?.phone, c?.city].filter(Boolean).join(" · ") || c?.job_role || " "}
+                    </p>
                   </button>
                 );
               })}
