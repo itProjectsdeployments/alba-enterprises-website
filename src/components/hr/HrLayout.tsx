@@ -182,6 +182,7 @@ const HrLayout = ({ children, onImport }: Props) => {
                   <DropdownMenuItem onClick={() => ui.openNewCandidate()}><UserPlus className="w-4 h-4 mr-2" />Candidate</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => ui.openNewClient()}><Building2 className="w-4 h-4 mr-2" />Client</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => ui.openSchedule()}><CalendarPlus className="w-4 h-4 mr-2" />Interview / trial</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => ui.openBulkSchedule()}><CalendarPlus className="w-4 h-4 mr-2" />Interviews for many (batch)</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => ui.openNewTask()}><ListTodo className="w-4 h-4 mr-2" />Task</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onImport}><FileSpreadsheet className="w-4 h-4 mr-2" />Import Excel / CSV</DropdownMenuItem>

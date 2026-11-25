@@ -320,6 +320,27 @@ export const formOf = (c: Candidate) => String(extraOf(c)["Google Form"] ?? "") 
 export const sheetIdFromLink = (s?: string | null) => (s || "").match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] ?? null;
 const gidFromLink = (s?: string | null) => (s || "").match(/[#&?]gid=(\d+)/)?.[1] ?? "";
 
+/** The position a form applicant chose ("Which position are you applying for?"), if any. */
+export const positionAnswerOf = (c: Candidate) => {
+  const fromExtra = Object.entries(extraOf(c)).find(([h]) => !h.startsWith("_") && /position|post|vacanc|role|apply|applying/i.test(h))?.[1];
+  return String(c.job_role || fromExtra || "");
+};
+
+const STOP = new Set(["the", "and", "for", "of", "in", "at", "a", "an", "job", "post", "position", "vacancy"]);
+const tokens = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/)
+  .filter((w) => w && !STOP.has(w)).map((w) => (w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w))
+  .map((w) => (w === "commi" || w === "commie" ? "commis" : w));
+
+/** How well a form answer like "Commis 1" matches a requirement title like "Commie 1 - continental" (0 = no match). */
+export const positionScore = (answer: string, title: string) => {
+  const x = squashKey(answer), t = squashKey(title);
+  if (!x || !t) return 0;
+  if (x === t) return 100;
+  const ta = new Set(tokens(answer));
+  const overlap = tokens(title).filter((w) => ta.has(w)).length;
+  return overlap * 10 + (t.includes(x) || x.includes(t) ? 5 : 0);
+};
+
 /** Does a requirement's link (form title, or response-spreadsheet URL with optional #gid=) match this form response? */
 export const intakeMatches = (key: string | null | undefined, c: Candidate) => {
   if (!key || c.source !== "Google Form") return false;
@@ -333,7 +354,19 @@ export const intakeMatches = (key: string | null | undefined, c: Candidate) => {
   return squashKey(key) !== "" && squashKey(key) === squashKey(formOf(c));
 };
 
-/** Every Google Form that has sent responses, with counts and the requirement it is linked to. */
+/**
+ * Which requirement a form applicant belongs to. When one form serves several
+ * requirements, the position they chose in the form decides.
+ */
+export const routeFormApplicant = (c: Candidate, jobs: Job[]) => {
+  const linked = jobs.filter((j) => intakeMatches(j.intake_key, c));
+  if (linked.length <= 1) return linked[0] ?? null;
+  const answer = positionAnswerOf(c);
+  const best = linked.map((j) => ({ j, s: positionScore(answer, j.title) })).sort((p, q) => q.s - p.s)[0];
+  return best && best.s > 0 ? best.j : null;
+};
+
+/** Every Google Form that has sent responses, with counts and the requirements it is linked to. */
 export const listForms = (candidates: Candidate[], jobs: Job[]) => {
   const m = new Map<string, { title: string; count: number; latest: string; sample: Candidate }>();
   candidates.forEach((c) => {
@@ -345,31 +378,27 @@ export const listForms = (candidates: Candidate[], jobs: Job[]) => {
     else { cur.count++; if (c.created_at > cur.latest) cur.latest = c.created_at; }
   });
   return [...m.values()]
-    .map((f) => ({ title: f.title, count: f.count, latest: f.latest, job: jobs.find((j) => intakeMatches(j.intake_key, f.sample)) ?? null }))
-    .sort((a, b) => b.latest.localeCompare(a.latest));
-};
-
-const sameLink = (a?: string | null, b?: string | null) => {
-  if (!a || !b) return false;
-  const ia = sheetIdFromLink(a), ib = sheetIdFromLink(b);
-  if (ia || ib) return ia === ib && gidFromLink(a) === gidFromLink(b);
-  return squashKey(a) === squashKey(b);
+    .map((f) => ({ title: f.title, count: f.count, latest: f.latest, jobs: jobs.filter((j) => intakeMatches(j.intake_key, f.sample)) }))
+    .sort((p, q) => q.latest.localeCompare(p.latest));
 };
 
 /**
- * Links a Google Form (by title or response-spreadsheet link) to a requirement, or unlinks with
- * jobId = null. Future responses go straight into that requirement; people who already applied
- * through the form are added now.
+ * Links a Google Form (by title or response-spreadsheet link) to a requirement, or unlinks that
+ * requirement with jobId = null. A form may be linked to several requirements (one form for
+ * several positions). People who already applied are added now, routed by the position they chose.
  */
-export const linkFormToJob = async (formKey: string, jobId: string | null, ctx: { jobs: Job[]; candidates: Candidate[]; candidateMap: Map<string, Candidate> }) => {
+export const linkFormToJob = async (formKey: string, jobId: string | null, ctx: { jobs: Job[]; candidates: Candidate[]; candidateMap: Map<string, Candidate> }, unlinkJobId?: string) => {
   const key = formKey.trim();
-  const previous = ctx.jobs.filter((j) => sameLink(j.intake_key, key) && j.id !== jobId);
-  for (const j of previous) await db.from("crm_jobs").update({ intake_key: null }).eq("id", j.id);
-  if (!jobId) return 0;
+  if (!jobId) {
+    if (unlinkJobId) await db.from("crm_jobs").update({ intake_key: null }).eq("id", unlinkJobId);
+    return 0;
+  }
   await db.from("crm_jobs").update({ intake_key: key }).eq("id", jobId);
   const job = ctx.jobs.find((j) => j.id === jobId);
-  const applicants = ctx.candidates.filter((c) => intakeMatches(key, c)).map((c) => c.id);
-  if (!job || !applicants.length) return 0;
+  if (!job) return 0;
+  const jobsAfter = ctx.jobs.map((j) => (j.id === jobId ? { ...j, intake_key: key } : j));
+  const applicants = ctx.candidates.filter((c) => routeFormApplicant(c, jobsAfter)?.id === jobId).map((c) => c.id);
+  if (!applicants.length) return 0;
   await logEvent({ job_id: jobId, kind: "note", content: `Linked to Google Form "${key}"` });
   return addCandidatesToJob(job, applicants, ctx.candidateMap);
 };

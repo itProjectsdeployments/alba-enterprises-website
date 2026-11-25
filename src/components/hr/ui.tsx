@@ -116,6 +116,7 @@ export interface HrUi {
   openNewTask: (preset?: { candidate_id?: string; job_id?: string; client_id?: string }) => void;
   openAddToJob: (opts: { jobId?: string; candidateIds?: string[] }) => void;
   openSchedule: (applicationId?: string) => void;
+  openBulkSchedule: (jobId?: string) => void;
 }
 export const HrUiContext = createContext<HrUi | null>(null);
 export const useHrUi = () => {

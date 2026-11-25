@@ -54,6 +54,20 @@ const cleanPhone = (p: string) => {
   return p.trim();
 };
 
+// How well a form answer like "Commis 1" matches a requirement title like "Commie 1 - continental".
+const STOP = new Set(["the", "and", "for", "of", "in", "at", "a", "an", "job", "post", "position", "vacancy"]);
+const tokens = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/)
+  .filter((w) => w && !STOP.has(w)).map((w) => (w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w))
+  .map((w) => (w === "commi" || w === "commie" ? "commis" : w));
+export const positionScore = (answer: string, title: string) => {
+  const a = squash(answer), t = squash(title);
+  if (!a || !t) return 0;
+  if (a === t) return 100;
+  const ta = new Set(tokens(answer)), tt = tokens(title);
+  const overlap = tt.filter((w) => ta.has(w)).length;
+  return overlap * 10 + (t.includes(a) || a.includes(t) ? 5 : 0);
+};
+
 const safeEqual = (a: string, b: string) => {
   if (a.length !== b.length) return false;
   let r = 0;
@@ -96,7 +110,14 @@ Deno.serve(async (req) => {
       })
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score);
-    const job = ranked[0]?.j;
+    // All requirements linked to this form. One form can serve several positions: then each
+    // applicant goes to the requirement matching the position they chose in the form.
+    const linkedJobs = ranked.filter((x) => x.score === ranked[0]?.score).map((x) => x.j);
+    const pickJob = (answer: string) => {
+      if (linkedJobs.length <= 1) return linkedJobs[0] ?? null;
+      const best = linkedJobs.map((j) => ({ j, s: positionScore(answer, j.title) })).sort((a, b) => b.s - a.s)[0];
+      return best && best.s > 0 ? best.j : null;
+    };
 
     // Existing candidates for duplicate detection.
     const { data: existing } = await db.from("crm_candidates").select("id, phone, email, source_ref").limit(20000);
@@ -110,7 +131,7 @@ Deno.serve(async (req) => {
       if (c.source_ref) refs.add(c.source_ref);
     });
 
-    let added = 0, matched = 0, skipped = 0, linked = 0;
+    let added = 0, matched = 0, skipped = 0, linked = 0, unrouted = 0;
     for (const { row, data } of rows) {
       const ref = `gform:${sheet_id ?? "?"}:${sheet_name ?? "?"}:${row}`.slice(0, 300);
       if (refs.has(ref)) { skipped++; continue; }
@@ -158,6 +179,9 @@ Deno.serve(async (req) => {
       }
       refs.add(ref);
 
+      const positionAnswer = String(rec.job_role ?? "") || Object.entries(extra).find(([h]) => /position|post|vacanc|role|apply|applying/i.test(h))?.[1] || "";
+      const job = pickJob(positionAnswer);
+      if (!job && linkedJobs.length > 1) unrouted++;
       if (job && candidateId) {
         const { data: app } = await db.from("crm_applications")
           .upsert({ job_id: job.id, candidate_id: candidateId, stage: "Sourced" }, { onConflict: "job_id,candidate_id", ignoreDuplicates: true })
@@ -169,7 +193,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ success: true, form: formTitle, requirement: job?.title ?? null, added, matched_existing: matched, skipped, added_to_requirement: linked });
+    return json({ success: true, form: formTitle, requirements: linkedJobs.map((j) => j.title), added, matched_existing: matched, skipped, added_to_requirement: linked, position_not_matched: unrouted });
   } catch (err) {
     console.error("form-intake error:", err);
     return json({ error: String((err as Error)?.message ?? err) }, 500);

@@ -105,7 +105,7 @@ const RequirementDetail = () => {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => ui.openAddToJob({ jobId: job.id })}><UserPlus className="w-4 h-4 mr-1" />Add candidates</Button>
-            <Button variant="outline" onClick={() => ui.openSchedule()}><CalendarPlus className="w-4 h-4 mr-1" />Schedule</Button>
+            <Button variant="outline" onClick={() => ui.openBulkSchedule(job.id)}><CalendarPlus className="w-4 h-4 mr-1" />Schedule interviews</Button>
             <Button variant="outline" onClick={() => setEditOpen(true)}><Pencil className="w-4 h-4 mr-1" />Edit</Button>
             <Button variant="outline" onClick={publish}><Globe className="w-4 h-4 mr-1" />{job.public_job_id ? "Show/hide on website" : "Publish on website"}</Button>
             <Button variant="outline" onClick={share}><Share2 className="w-4 h-4 mr-1" />Share job post</Button>
