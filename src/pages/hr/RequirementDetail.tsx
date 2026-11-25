@@ -9,6 +9,7 @@ import { JOB_STATUSES, JOB_STATUS_TONE, PRIORITY_TONE, deleteRow, logEvent, upda
 import { Card, NativeSelect, Pill, useAction, useHrUi } from "@/components/hr/ui";
 import { JobDialog } from "@/components/hr/dialogs";
 import StageBoard from "@/components/hr/StageBoard";
+import ApplicationsTable from "@/components/hr/ApplicationsTable";
 import { RequirementFormCard } from "@/components/hr/FormLink";
 
 export const jobPostText = (j: Job) => [
@@ -36,6 +37,10 @@ const RequirementDetail = () => {
   const { toast } = useToast();
   const [editOpen, setEditOpen] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
+  const [view, setView] = useState<"table" | "board">(() => {
+    try { return localStorage.getItem("hr.reqView") === "board" ? "board" : "table"; } catch { return "table"; }
+  });
+  const setViewSaved = (v: "table" | "board") => { setView(v); try { localStorage.setItem("hr.reqView", v); } catch { /* ignore */ } };
   const activities = useActivities({ job_id: id });
   const job = crm.job.get(id || "");
 
@@ -115,17 +120,23 @@ const RequirementDetail = () => {
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold">Candidate pipeline <span className="text-muted-foreground font-normal text-sm">· drag cards between stages, click to open</span></h2>
-        {closedCount > 0 && <Button variant="ghost" size="sm" onClick={() => setShowClosed(!showClosed)}>{showClosed ? "Hide" : "Show"} rejected/dropped ({closedCount})</Button>}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-semibold">Candidates on this vacancy <span className="text-muted-foreground font-normal text-sm">({apps.length})</span></h2>
+        <div className="flex items-center gap-2">
+          {view === "board" && closedCount > 0 && <Button variant="ghost" size="sm" onClick={() => setShowClosed(!showClosed)}>{showClosed ? "Hide" : "Show"} rejected/dropped ({closedCount})</Button>}
+          <div className="inline-flex rounded-lg border bg-card p-0.5 text-sm">
+            <button onClick={() => setViewSaved("table")} className={`px-3 py-1 rounded-md ${view === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>Table</button>
+            <button onClick={() => setViewSaved("board")} className={`px-3 py-1 rounded-md ${view === "board" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>Board</button>
+          </div>
+        </div>
       </div>
       {apps.length === 0 ? (
         <div className="rounded-xl border-2 border-dashed bg-card p-8 text-center">
           <p className="font-medium">No candidates on this requirement yet</p>
-          <p className="text-sm text-muted-foreground mb-4">Step 2: add matching candidates from your database. Best matches are suggested first.</p>
+          <p className="text-sm text-muted-foreground mb-4">Step 2: add matching candidates from your database, or link this vacancy's Google Form.</p>
           <Button onClick={() => ui.openAddToJob({ jobId: job.id })}><UserPlus className="w-4 h-4 mr-1" />Add candidates</Button>
         </div>
-      ) : <StageBoard applications={apps} hideClosed={!showClosed} />}
+      ) : view === "table" ? <ApplicationsTable applications={apps} jobId={job.id} /> : <StageBoard applications={apps} hideClosed={!showClosed} />}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <Card title="Requirement details" className="lg:col-span-2" actions={

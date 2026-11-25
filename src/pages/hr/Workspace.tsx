@@ -11,6 +11,7 @@ import {
 import { Card, EmptyState, NativeSelect, PageHeader, Pill, StatCard, useAction, useHrUi } from "@/components/hr/ui";
 import { ClientDialog, TaskDialog } from "@/components/hr/dialogs";
 import StageBoard from "@/components/hr/StageBoard";
+import ApplicationsTable from "@/components/hr/ApplicationsTable";
 
 /* ============================================================== Pipeline */
 
@@ -19,20 +20,25 @@ export const Pipeline = () => {
   const [job, setJob] = useState("");
   const [client, setClient] = useState("");
   const [showClosed, setShowClosed] = useState(false);
+  const [view, setView] = useState<"table" | "board">("table");
   const apps = crm.applications.filter((a) => {
     const j = crm.job.get(a.job_id);
     return (!job || a.job_id === job) && (!client || j?.client_id === client) && (job || j?.status === "Open" || j?.status === "On Hold" || a.stage === "Joined");
   });
   return (
     <div>
-      <PageHeader title="Pipeline board" subtitle="Every candidate on every open requirement. Drag cards to move them through the process, or click one for full details." />
+      <PageHeader title="Pipeline" subtitle="Every candidate on every open requirement. Click a name for full details, or switch to Board to drag cards." />
       <div className="flex flex-wrap gap-2 mb-5">
         <div className="w-64"><NativeSelect value={client} onChange={(v) => { setClient(v); setJob(""); }} options={crm.clients.map((c) => ({ value: c.id, label: c.name }))} placeholder="All clients" className="bg-card" /></div>
         <div className="w-72"><NativeSelect value={job} onChange={setJob} options={crm.jobs.filter((j) => !client || j.client_id === client).map((j) => ({ value: j.id, label: `${j.title} (${j.status})` }))} placeholder="All open requirements" className="bg-card" /></div>
-        <Button variant="ghost" onClick={() => setShowClosed(!showClosed)}>{showClosed ? "Hide" : "Show"} rejected/dropped</Button>
+        {view === "board" && <Button variant="ghost" onClick={() => setShowClosed(!showClosed)}>{showClosed ? "Hide" : "Show"} rejected/dropped</Button>}
+        <div className="inline-flex rounded-lg border bg-card p-0.5 text-sm ml-auto">
+          <button onClick={() => setView("table")} className={`px-3 py-1 rounded-md ${view === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Table</button>
+          <button onClick={() => setView("board")} className={`px-3 py-1 rounded-md ${view === "board" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>Board</button>
+        </div>
       </div>
       {apps.length === 0 ? <EmptyState icon={BarChart3} title="Pipeline is empty" text="Create a requirement and add candidates to it to start." action={<Button asChild><Link to="/hr/requirements">Requirements</Link></Button>} />
-        : <StageBoard applications={apps} showJob={!job} hideClosed={!showClosed} />}
+        : view === "table" ? <ApplicationsTable applications={apps} showJob={!job} jobId={job || undefined} /> : <StageBoard applications={apps} showJob={!job} hideClosed={!showClosed} />}
     </div>
   );
 };
