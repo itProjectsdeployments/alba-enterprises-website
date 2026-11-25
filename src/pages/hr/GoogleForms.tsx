@@ -50,7 +50,7 @@ function send_(sheet, headers, rows) {
   let form = sheet.getName();
   try { const url = sheet.getFormUrl(); if (url) form = FormApp.openByUrl(url).getTitle(); } catch (err) {}
   const payload = {
-    token: TOKEN, form, sheet_id: SpreadsheetApp.getActive().getId(), sheet_name: sheet.getName(),
+    token: TOKEN, form, sheet_id: SpreadsheetApp.getActive().getId(), sheet_name: sheet.getName(), sheet_gid: sheet.getSheetId(),
     rows: rows.map(r => { const data = {}; headers.forEach((h, i) => { if (h) data[h] = r.values[i]; }); return { row: r.row, data }; }),
   };
   const res = UrlFetchApp.fetch(ENDPOINT, { method: "post", contentType: "application/json", payload: JSON.stringify(payload), muteHttpExceptions: true });

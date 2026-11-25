@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { formatDateTime } from "@/lib/crm";
-import { type Job, linkFormToJob, listForms, useCrm } from "@/lib/hr/model";
+import { type Job, intakeMatches, linkFormToJob, listForms, sheetIdFromLink, useCrm } from "@/lib/hr/model";
 import { Card, NativeSelect, Pill, useAction } from "./ui";
 
 const useLinker = () => {
@@ -73,14 +73,15 @@ export const RequirementFormCard = ({ job }: { job: Job }) => {
   const [manual, setManual] = useState("");
   const forms = listForms(crm.candidates, crm.jobs);
   const linked = job.intake_key;
-  const linkedCount = linked ? forms.find((f) => f.job?.id === job.id)?.count ?? 0 : 0;
+  const linkedCount = linked ? crm.candidates.filter((c) => intakeMatches(linked, c)).length : 0;
+  const isSheet = !!sheetIdFromLink(linked);
 
   return (
     <Card title="Google Form" icon={ClipboardList}>
       {linked ? (
         <div className="space-y-3">
-          <p className="text-sm">Applicants from <strong>"{linked}"</strong> are added to this pipeline automatically.</p>
-          <p className="text-xs text-muted-foreground">{linkedCount} response(s) received so far.</p>
+          <p className="text-sm">Applicants from {isSheet ? <a href={linked} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">this response spreadsheet</a> : <strong>"{linked}"</strong>} are added to this pipeline automatically.</p>
+          <p className="text-xs text-muted-foreground">{linkedCount} response(s) received so far.{linkedCount === 0 && <> Nothing yet? The script must be set up in that spreadsheet first: <Link to="/hr/google-forms" className="text-primary">see steps</Link>.</>}</p>
           <Button size="sm" variant="outline" onClick={() => link(linked, null)}><Unlink className="w-4 h-4 mr-1" />Unlink form</Button>
         </div>
       ) : (
@@ -91,7 +92,7 @@ export const RequirementFormCard = ({ job }: { job: Job }) => {
               options={forms.map((f) => ({ value: f.title, label: `${f.title} (${f.count})${f.job ? ` · linked to ${f.job.title}` : ""}` }))} />
           )}
           <div className="flex gap-2">
-            <Input value={manual} onChange={(e) => setManual(e.target.value)} placeholder={forms.length ? "…or type a new form's exact title" : "Type the form's exact title"} />
+            <Input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Paste the response spreadsheet link, or the form title" />
             <Button size="sm" disabled={!manual.trim()} onClick={async () => { await link(manual.trim(), job.id); setManual(""); }}>Link</Button>
           </div>
           <Link to="/hr/google-forms" className="text-xs text-primary">How to connect your forms</Link>

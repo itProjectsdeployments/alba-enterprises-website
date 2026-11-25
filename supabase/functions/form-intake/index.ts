@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { token, form, sheet_id, sheet_name } = body ?? {};
+    const { token, form, sheet_id, sheet_name, sheet_gid } = body ?? {};
     const rows: { row: number; data: Record<string, unknown> }[] = Array.isArray(body?.rows) ? body.rows : [];
     if (typeof token !== "string" || !rows.length) return json({ error: "token and rows are required" }, 400);
     if (rows.length > 500) return json({ error: "Send at most 500 rows per request" }, 400);
@@ -79,8 +79,24 @@ Deno.serve(async (req) => {
 
     const formTitle = String(form || sheet_name || "Google Form").slice(0, 200);
     const { data: jobs } = await db.from("crm_jobs").select("id, title, intake_key, status").not("intake_key", "is", null);
-    const job = (jobs || []).find((j) => squash(j.intake_key || "") && squash(j.intake_key || "") === squash(formTitle))
-      ?? (jobs || []).find((j) => squash(j.intake_key || "") && squash(formTitle).includes(squash(j.intake_key || "")));
+    // A requirement is linked either by the response spreadsheet link (optionally a specific tab via #gid=)
+    // or by the form title.
+    const byLink = (key: string) => {
+      const id = key.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1];
+      if (!id || id !== sheet_id) return null;
+      const gid = key.match(/[#&?]gid=(\d+)/)?.[1];
+      return !gid || sheet_gid == null || String(sheet_gid) === gid ? (gid ? 2 : 1) : null;
+    };
+    const ranked = (jobs || [])
+      .map((j) => {
+        const key = j.intake_key || "";
+        const link = byLink(key);
+        const score = link ? link + 10 : squash(key) && squash(key) === squash(formTitle) ? 5 : squash(key) && squash(formTitle).includes(squash(key)) ? 1 : 0;
+        return { j, score };
+      })
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score);
+    const job = ranked[0]?.j;
 
     // Existing candidates for duplicate detection.
     const { data: existing } = await db.from("crm_candidates").select("id, phone, email, source_ref").limit(20000);
@@ -100,7 +116,7 @@ Deno.serve(async (req) => {
       if (refs.has(ref)) { skipped++; continue; }
 
       const rec: Record<string, unknown> = { source: "Google Form", status: "New", source_ref: ref };
-      const extra: Record<string, string> = { "Google Form": formTitle };
+      const extra: Record<string, string> = { "Google Form": formTitle, _sheet_id: String(sheet_id ?? ""), _sheet_gid: String(sheet_gid ?? "") };
       const notes: string[] = [];
       for (const [header, raw] of Object.entries(data || {})) {
         const value = raw == null ? "" : String(raw).trim();

@@ -32,7 +32,7 @@ const CandidateProfile = () => {
   const apps = crm.applications.filter((a) => a.candidate_id === c.id);
   const docs = crm.documents.filter((d) => d.candidate_id === c.id);
   const interviews = crm.interviews.filter((i) => apps.some((a) => a.id === i.application_id)).sort((a, b) => b.scheduled_at.localeCompare(a.scheduled_at));
-  const extra = Object.entries((c.extra as Record<string, string>) || {});
+  const extra = Object.entries((c.extra as Record<string, string>) || {}).filter(([k]) => !k.startsWith("_"));
 
   const upd = (patch: Partial<Candidate>, success?: string) => run(() => updateRow("crm_candidates", c.id, patch), { success, refresh: ["crm_candidates"] });
 

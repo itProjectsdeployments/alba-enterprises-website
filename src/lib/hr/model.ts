@@ -312,40 +312,65 @@ export const moveStage = async (
 // ---------------------------------------------------------------------------
 
 const squashKey = (s?: string | null) => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const extraOf = (c: Candidate) => (c.extra as Record<string, unknown> | null) ?? {};
 
 /** Title of the Google Form a candidate came from (set by the form-intake function). */
-export const formOf = (c: Candidate) => String((c.extra as Record<string, unknown> | null)?.["Google Form"] ?? "") || null;
+export const formOf = (c: Candidate) => String(extraOf(c)["Google Form"] ?? "") || null;
+
+export const sheetIdFromLink = (s?: string | null) => (s || "").match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1] ?? null;
+const gidFromLink = (s?: string | null) => (s || "").match(/[#&?]gid=(\d+)/)?.[1] ?? "";
+
+/** Does a requirement's link (form title, or response-spreadsheet URL with optional #gid=) match this form response? */
+export const intakeMatches = (key: string | null | undefined, c: Candidate) => {
+  if (!key || c.source !== "Google Form") return false;
+  const id = sheetIdFromLink(key);
+  if (id) {
+    if (String(extraOf(c)._sheet_id ?? "") !== id) return false;
+    const gid = gidFromLink(key);
+    const cg = String(extraOf(c)._sheet_gid ?? "");
+    return !gid || !cg || cg === gid;
+  }
+  return squashKey(key) !== "" && squashKey(key) === squashKey(formOf(c));
+};
 
 /** Every Google Form that has sent responses, with counts and the requirement it is linked to. */
 export const listForms = (candidates: Candidate[], jobs: Job[]) => {
-  const m = new Map<string, { title: string; count: number; latest: string }>();
+  const m = new Map<string, { title: string; count: number; latest: string; sample: Candidate }>();
   candidates.forEach((c) => {
     const t = c.source === "Google Form" ? formOf(c) : null;
     if (!t) return;
-    const k = squashKey(t);
+    const k = squashKey(t) + "|" + String(extraOf(c)._sheet_id ?? "") + "|" + String(extraOf(c)._sheet_gid ?? "");
     const cur = m.get(k);
-    if (!cur) m.set(k, { title: t, count: 1, latest: c.created_at });
+    if (!cur) m.set(k, { title: t, count: 1, latest: c.created_at, sample: c });
     else { cur.count++; if (c.created_at > cur.latest) cur.latest = c.created_at; }
   });
   return [...m.values()]
-    .map((f) => ({ ...f, job: jobs.find((j) => squashKey(j.intake_key) && squashKey(j.intake_key) === squashKey(f.title)) ?? null }))
+    .map((f) => ({ title: f.title, count: f.count, latest: f.latest, job: jobs.find((j) => intakeMatches(j.intake_key, f.sample)) ?? null }))
     .sort((a, b) => b.latest.localeCompare(a.latest));
 };
 
+const sameLink = (a?: string | null, b?: string | null) => {
+  if (!a || !b) return false;
+  const ia = sheetIdFromLink(a), ib = sheetIdFromLink(b);
+  if (ia || ib) return ia === ib && gidFromLink(a) === gidFromLink(b);
+  return squashKey(a) === squashKey(b);
+};
+
 /**
- * Links a Google Form to a requirement (or unlinks with jobId = null). Future responses go
- * straight into that requirement; people who already applied through the form are added now.
+ * Links a Google Form (by title or response-spreadsheet link) to a requirement, or unlinks with
+ * jobId = null. Future responses go straight into that requirement; people who already applied
+ * through the form are added now.
  */
-export const linkFormToJob = async (formTitle: string, jobId: string | null, ctx: { jobs: Job[]; candidates: Candidate[]; candidateMap: Map<string, Candidate> }) => {
-  const key = squashKey(formTitle);
-  const previous = ctx.jobs.filter((j) => squashKey(j.intake_key) === key && j.id !== jobId);
+export const linkFormToJob = async (formKey: string, jobId: string | null, ctx: { jobs: Job[]; candidates: Candidate[]; candidateMap: Map<string, Candidate> }) => {
+  const key = formKey.trim();
+  const previous = ctx.jobs.filter((j) => sameLink(j.intake_key, key) && j.id !== jobId);
   for (const j of previous) await db.from("crm_jobs").update({ intake_key: null }).eq("id", j.id);
   if (!jobId) return 0;
-  await db.from("crm_jobs").update({ intake_key: formTitle.trim() }).eq("id", jobId);
+  await db.from("crm_jobs").update({ intake_key: key }).eq("id", jobId);
   const job = ctx.jobs.find((j) => j.id === jobId);
-  const applicants = ctx.candidates.filter((c) => c.source === "Google Form" && squashKey(formOf(c)) === key).map((c) => c.id);
+  const applicants = ctx.candidates.filter((c) => intakeMatches(key, c)).map((c) => c.id);
   if (!job || !applicants.length) return 0;
-  await logEvent({ job_id: jobId, kind: "note", content: `Linked to Google Form "${formTitle}"` });
+  await logEvent({ job_id: jobId, kind: "note", content: `Linked to Google Form "${key}"` });
   return addCandidatesToJob(job, applicants, ctx.candidateMap);
 };
 
