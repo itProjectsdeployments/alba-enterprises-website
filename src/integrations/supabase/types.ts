@@ -138,6 +138,7 @@ export type Database = {
       }
       crm_applications: {
         Row: {
+          custom: Json
           id: string
           job_id: string
           candidate_id: string
@@ -159,6 +160,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          custom?: Json
           id?: string
           job_id: string
           candidate_id: string
@@ -180,6 +182,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          custom?: Json
           id?: string
           job_id?: string
           candidate_id?: string
@@ -471,6 +474,7 @@ export type Database = {
       }
       crm_jobs: {
         Row: {
+          custom_columns: Json
           id: string
           intake_key: string | null
           client_id: string | null
@@ -494,6 +498,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          custom_columns?: Json
           id?: string
           intake_key?: string | null
           client_id?: string | null
@@ -517,6 +522,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          custom_columns?: Json
           id?: string
           intake_key?: string | null
           client_id?: string | null

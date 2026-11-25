@@ -130,13 +130,13 @@ const RequirementDetail = () => {
           </div>
         </div>
       </div>
-      {apps.length === 0 ? (
+      {view === "table" ? <ApplicationsTable applications={apps} jobId={job.id} /> : apps.length === 0 ? (
         <div className="rounded-xl border-2 border-dashed bg-card p-8 text-center">
           <p className="font-medium">No candidates on this requirement yet</p>
           <p className="text-sm text-muted-foreground mb-4">Step 2: add matching candidates from your database, or link this vacancy's Google Form.</p>
           <Button onClick={() => ui.openAddToJob({ jobId: job.id })}><UserPlus className="w-4 h-4 mr-1" />Add candidates</Button>
         </div>
-      ) : view === "table" ? <ApplicationsTable applications={apps} jobId={job.id} /> : <StageBoard applications={apps} hideClosed={!showClosed} />}
+      ) : <StageBoard applications={apps} hideClosed={!showClosed} />}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <Card title="Requirement details" className="lg:col-span-2" actions={
