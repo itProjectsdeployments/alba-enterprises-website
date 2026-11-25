@@ -17,13 +17,16 @@ const buildScript = (token: string) => `// Alba Recruit: sends Google Form respo
 const ENDPOINT = "${ENDPOINT}";
 const TOKEN = "${token}";
 
-// Run once: turns on automatic sync and imports all existing responses.
+// Run once: instant sync on every form submission, a safety check every 5 minutes
+// (catches rows typed into the sheet by hand or any missed submission), and
+// imports everyone who has already applied.
 function setup() {
   const ss = SpreadsheetApp.getActive();
   ScriptApp.getProjectTriggers()
-    .filter(t => t.getHandlerFunction() === "onFormResponse")
+    .filter(t => ["onFormResponse", "syncNewRows"].indexOf(t.getHandlerFunction()) >= 0)
     .forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger("onFormResponse").forSpreadsheet(ss).onFormSubmit().create();
+  ScriptApp.newTrigger("syncNewRows").timeBased().everyMinutes(5).create();
   importAllExisting();
 }
 
@@ -34,16 +37,37 @@ function onFormResponse(e) {
   send_(sheet, all[0], [{ row: e.range.getRow(), values: all[e.range.getRow() - 1] }]);
 }
 
+// Runs every 5 minutes: sends any rows added since the last check.
+function syncNewRows() {
+  const props = PropertiesService.getScriptProperties();
+  sheets_().forEach(sheet => {
+    const key = "lastRow_" + sheet.getSheetId();
+    const last = Number(props.getProperty(key) || 1);
+    const all = sheet.getDataRange().getDisplayValues();
+    if (all.length <= last) return;
+    const rows = [];
+    for (let r = last; r < all.length; r++) if (all[r].some(v => v !== "")) rows.push({ row: r + 1, values: all[r] });
+    for (let i = 0; i < rows.length; i += 200) send_(sheet, all[0], rows.slice(i, i + 200));
+    props.setProperty(key, String(all.length));
+  });
+}
+
 // Safe to run any time: rows already in the CRM are skipped.
 function importAllExisting() {
-  const sheets = SpreadsheetApp.getActive().getSheets();
-  const formSheets = sheets.filter(s => s.getFormUrl());
-  (formSheets.length ? formSheets : [sheets[0]]).forEach(sheet => {
+  const props = PropertiesService.getScriptProperties();
+  sheets_().forEach(sheet => {
     const all = sheet.getDataRange().getDisplayValues();
     const rows = [];
     for (let r = 1; r < all.length; r++) if (all[r].some(v => v !== "")) rows.push({ row: r + 1, values: all[r] });
     for (let i = 0; i < rows.length; i += 200) send_(sheet, all[0], rows.slice(i, i + 200));
+    props.setProperty("lastRow_" + sheet.getSheetId(), String(all.length));
   });
+}
+
+function sheets_() {
+  const sheets = SpreadsheetApp.getActive().getSheets();
+  const formSheets = sheets.filter(s => s.getFormUrl());
+  return formSheets.length ? formSheets : [sheets[0]];
 }
 
 function send_(sheet, headers, rows) {
@@ -132,7 +156,7 @@ const GoogleForms = () => {
             </Step>
             <Step n={4} title='Run "setup" once'>
               <p>Choose <strong>setup</strong> in the function menu at the top and click <strong>Run</strong>. Google asks for permission: click <strong>Review permissions → your account → Advanced → Go to project → Allow</strong>.</p>
-              <p>This switches on automatic sync and imports everyone who has already applied.</p>
+              <p>This switches on automatic sync (instantly on each submission, plus a check every 5 minutes for rows added by hand) and imports everyone who has already applied.</p>
             </Step>
             <Step n={5} title="Done">
               <p>From now on every new response appears in <Link to="/hr/candidates" className="text-primary">Candidates</Link> within seconds, with source "Google Form". People who apply twice are not duplicated.</p>
