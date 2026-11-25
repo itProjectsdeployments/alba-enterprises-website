@@ -9,6 +9,7 @@ import { JOB_STATUSES, JOB_STATUS_TONE, PRIORITY_TONE, deleteRow, logEvent, upda
 import { Card, NativeSelect, Pill, useAction, useHrUi } from "@/components/hr/ui";
 import { JobDialog } from "@/components/hr/dialogs";
 import StageBoard from "@/components/hr/StageBoard";
+import { RequirementFormCard } from "@/components/hr/FormLink";
 
 export const jobPostText = (j: Job) => [
   `*Hiring: ${j.title}*${j.openings > 1 ? ` (${j.openings} positions)` : ""}`,
@@ -146,6 +147,7 @@ const RequirementDetail = () => {
           {job.description && <div className="mt-4"><p className="text-xs text-muted-foreground">Description & client notes</p><p className="text-sm whitespace-pre-wrap">{job.description}</p></div>}
         </Card>
         <div className="space-y-6">
+          <RequirementFormCard job={job} />
           {client && (
             <Card title="Client contact" icon={Building2}>
               <p className="font-medium">{client.contact_person || client.name}</p>

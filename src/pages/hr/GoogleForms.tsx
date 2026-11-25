@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDateTime } from "@/lib/crm";
 import { useCrm } from "@/lib/hr/model";
 import { Card, PageHeader, Pill, StatCard } from "@/components/hr/ui";
+import { FormsTable } from "@/components/hr/FormLink";
 
 const ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/form-intake`;
 
@@ -114,6 +115,8 @@ const GoogleForms = () => {
         <StatCard icon={FileSpreadsheet} label="Received this week" value={formCandidates.filter((c) => c.created_at >= weekAgo).length} tone="bg-emerald-100 text-emerald-700" />
         <StatCard icon={Link2} label="Requirements linked to a form" value={linkedJobs.length} tone="bg-indigo-100 text-indigo-700" />
       </div>
+
+      <FormsTable />
 
       <div className="grid xl:grid-cols-5 gap-6">
         <Card title="One-time setup (about 3 minutes per spreadsheet)" className="xl:col-span-3">
