@@ -39,7 +39,7 @@ export const FormsTable = () => {
   return (
     <Card title="Your Google Forms" icon={ClipboardList}>
       <p className="text-sm text-muted-foreground mb-4">
-        Each form appears here after its first response. Link it to its vacancy. <strong>One form for several positions?</strong> Link it to each of them, and every applicant goes to the vacancy matching the position they chose in the form.
+        Each form appears here after its first response. <strong>A different form for each vacancy?</strong> Don't link it here: open that requirement (Step 1) and paste the form's response spreadsheet link in its <em>Google Form</em> box. Use the dropdown below only when <strong>this same form</strong> collects applicants for several positions; each applicant then goes to the vacancy matching the position they chose.
       </p>
       {forms.length === 0 ? (
         <p className="text-sm rounded-lg bg-muted/50 p-4">No forms have sent responses yet. Finish the one-time setup below (run <strong>setup</strong> in Apps Script) and your forms will be listed here.</p>
@@ -57,7 +57,7 @@ export const FormsTable = () => {
                   {f.jobs.length ? <Pill tone="bg-emerald-50 text-emerald-700 border-emerald-200"><Link2 className="w-3 h-3 mr-1" />{f.jobs.length} vacanc{f.jobs.length === 1 ? "y" : "ies"}</Pill>
                     : <Pill tone="bg-amber-50 text-amber-800 border-amber-200">Not linked</Pill>}
                   <div className="w-72 max-w-full">
-                    <NativeSelect value="" onChange={(v) => v && link(key, v)} placeholder={f.jobs.length ? "+ Link another vacancy…" : "Link to vacancy…"}
+                    <NativeSelect value="" onChange={(v) => v && link(key, v)} placeholder={f.jobs.length ? "+ Same form also used for…" : "Link this form to vacancy…"}
                       options={openJobs.filter((j) => !f.jobs.includes(j)).map((j) => ({ value: j.id, label: jobLabel(j, j.client_id ? crm.client.get(j.client_id)?.name : undefined) }))} />
                   </div>
                 </div>
