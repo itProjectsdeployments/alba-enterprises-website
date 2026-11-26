@@ -342,12 +342,17 @@ const tokens = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(
 
 /** How well a form answer like "Commis 1" matches a requirement title like "Commie 1 - continental" (0 = no match). */
 export const positionScore = (answer: string, title: string) => {
-  const x = squashKey(answer), t = squashKey(title);
-  if (!x || !t) return 0;
-  if (x === t) return 100;
-  const ta = new Set(tokens(answer));
-  const overlap = tokens(title).filter((w) => ta.has(w)).length;
-  return overlap * 10 + (t.includes(x) || x.includes(t) ? 5 : 0);
+  const strip = (s: string) => s.replace(/([^)]*)/g, " ");
+  const a = squashKey(strip(answer)) || squashKey(answer), t = squashKey(strip(title)) || squashKey(title);
+  if (!a || !t) return 0;
+  if (a === t || squashKey(answer) === squashKey(title)) return 100;
+  const ta = new Set(tokens(strip(answer))), tt = tokens(strip(title));
+  const overlap = tt.filter((w) => ta.has(w)).length;
+  const contains = t.includes(a) || a.includes(t);
+  if (!overlap && !contains) return 0;
+  // Extra words in the title count slightly against it, so "Restaurant Manager" picks
+  // "Restaurant Manager (RM)" over "Assistant Restaurant Manager (ARM)".
+  return Math.max(1, overlap * 10 + (contains ? 5 : 0) - (tt.length - overlap) * 2);
 };
 
 /** Does a requirement's link (form title, or response-spreadsheet URL with optional #gid=) match this form response? */

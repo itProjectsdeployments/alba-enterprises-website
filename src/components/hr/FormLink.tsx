@@ -96,7 +96,9 @@ export const RequirementFormCard = ({ job }: { job: Job }) => {
   const link = useLinker();
   const [manual, setManual] = useState("");
   const linked = job.intake_key;
-  const sheetId = sheetIdFromLink(linked);
+  const linkedSheet = sheetIdFromLink(linked);
+  // Linked by form name: find its spreadsheet from responses already received, to show sync health.
+  const sheetId = linkedSheet || (linked ? String(((crm.candidates.find((c) => intakeMatches(linked, c))?.extra as Record<string, unknown> | null)?._sheet_id) ?? "") : "") || null;
   // People actually on this vacancy who came from the form (matches what the table shows).
   const routed = linked ? crm.applications.filter((x) => { const c = crm.candidate.get(x.candidate_id); return x.job_id === job.id && !!c && intakeMatches(linked, c); }).length : 0;
   const total = linked ? crm.candidates.filter((c) => intakeMatches(linked, c)).length : 0;
@@ -120,7 +122,7 @@ export const RequirementFormCard = ({ job }: { job: Job }) => {
       {linked ? (
         <div className="space-y-3">
           <p className="text-sm">
-            Applicants from {sheetId ? <a href={linked} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">this response spreadsheet</a> : <strong>"{linked}"</strong>} are added to this vacancy automatically.
+            Applicants from {linkedSheet ? <a href={linked} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">this response spreadsheet</a> : <strong>"{linked}"</strong>} are added to this vacancy automatically.
           </p>
           {sheetId && (
             status.data?.error ? (

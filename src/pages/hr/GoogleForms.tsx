@@ -12,7 +12,7 @@ import { FormsTable } from "@/components/hr/FormLink";
 
 const ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/form-intake`;
 
-const buildScript = (token: string) => `// Alba Recruit: ONE script that syncs every Google Form spreadsheet linked in the CRM.
+const buildScript = (token: string) => `// Alba Recruit (version 2): ONE script that syncs every Google Form spreadsheet linked in the CRM.
 // Install once at script.google.com (New project), paste this, save, then run "setup".
 // After that, just paste a spreadsheet link into a requirement in the CRM: nothing to install per sheet.
 const ENDPOINT = "${ENDPOINT}";
@@ -42,15 +42,13 @@ function syncAll() {
     ensureInstantSync_(ss, props);
     let total = 0;
     tabs_(ss, src.gid).forEach(sheet => {
-      const key = "last_" + src.sheet_id + "_" + sheet.getSheetId();
-      const last = Number(props.getProperty(key) || 1);
+      // Sends every filled row; the CRM skips people it already has, so added, edited
+      // or deleted rows never confuse the sync.
       const all = sheet.getDataRange().getDisplayValues();
-      total += Math.max(0, all.length - 1);
-      if (all.length <= last) return;
       const rows = [];
-      for (let r = last; r < all.length; r++) if (all[r].some(v => v !== "")) rows.push({ row: r + 1, values: all[r] });
+      for (let r = 1; r < all.length; r++) if (all[r].some(v => v !== "")) rows.push({ row: r + 1, values: all[r] });
+      total += rows.length;
       for (let i = 0; i < rows.length; i += 200) send_(ss, sheet, all[0], rows.slice(i, i + 200));
-      props.setProperty(key, String(all.length));
     });
     call_({ action: "status", sheet_id: src.sheet_id, rows: total });
   });
@@ -161,6 +159,7 @@ const GoogleForms = () => {
             </Step>
             <Step n={2} title="Paste the script and save">
               <p>Delete the sample code, click <strong>Copy script</strong> on this page, paste it, and press <strong>Ctrl + S</strong>. Name the project "Alba Recruit sync".</p>
+              <p className="rounded-md bg-amber-50 border border-amber-200 text-amber-900 p-2"><strong>Already installed an older version?</strong> Open that project, select all the code, paste this version over it, save, and run <strong>setup</strong> again.</p>
             </Step>
             <Step n={3} title='Run "setup" once'>
               <p>Choose <strong>setup</strong> in the function menu at the top and click <strong>Run</strong>. Allow the permissions: <strong>Review permissions → your account → Advanced → Go to project → Allow</strong>.</p>

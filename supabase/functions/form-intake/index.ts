@@ -4,7 +4,9 @@
 //
 // Body: { token, form, sheet_id, sheet_name, rows: [{ row, data: { "<question>": "<answer>" } }] }
 // - token must match crm_settings.form_intake_token
-// - each row is imported once (source_ref = gform:<sheet_id>:<sheet_name>:<row>)
+// - each person is imported once per spreadsheet tab (source_ref = gform:<sheet_id>:<sheet_name>:<row>,
+//   plus phone/email), so the whole sheet can be re-sent safely
+// - action "sources" lists the spreadsheets linked to open requirements; "status" records sync health
 // - an existing candidate with the same phone/email is not duplicated; they are
 //   just linked to the requirement and get an activity note
 // - if a requirement's "Google Form name" matches the form title, the candidate is
@@ -60,12 +62,17 @@ const tokens = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(
   .filter((w) => w && !STOP.has(w)).map((w) => (w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w))
   .map((w) => (w === "commi" || w === "commie" ? "commis" : w));
 export const positionScore = (answer: string, title: string) => {
-  const a = squash(answer), t = squash(title);
+  const strip = (s: string) => s.replace(/([^)]*)/g, " ");
+  const a = squash(strip(answer)) || squash(answer), t = squash(strip(title)) || squash(title);
   if (!a || !t) return 0;
-  if (a === t) return 100;
-  const ta = new Set(tokens(answer)), tt = tokens(title);
+  if (a === t || squash(answer) === squash(title)) return 100;
+  const ta = new Set(tokens(strip(answer))), tt = tokens(strip(title));
   const overlap = tt.filter((w) => ta.has(w)).length;
-  return overlap * 10 + (t.includes(a) || a.includes(t) ? 5 : 0);
+  const contains = t.includes(a) || a.includes(t);
+  if (!overlap && !contains) return 0;
+  // Extra words in the title count slightly against it, so "Restaurant Manager" picks
+  // "Restaurant Manager (RM)" over "Assistant Restaurant Manager (ARM)".
+  return Math.max(1, overlap * 10 + (contains ? 5 : 0) - (tt.length - overlap) * 2);
 };
 
 const safeEqual = (a: string, b: string) => {
@@ -106,15 +113,24 @@ Deno.serve(async (req) => {
       const { data } = await db.from("crm_jobs").select("intake_key, status").not("intake_key", "is", null);
       const seen = new Set<string>();
       const sources: { sheet_id: string; gid: string | null }[] = [];
+      const add = (id: string, gid: string | null) => {
+        const k = id + "|" + (gid ?? "");
+        if (!seen.has(k)) { seen.add(k); sources.push({ sheet_id: id, gid }); }
+      };
+      const byTitle = new Set<string>();
       for (const j of data || []) {
         if (j.status === "Closed" || j.status === "Filled") continue;
         const id = String(j.intake_key).match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1];
-        if (!id) continue;
-        const gid = String(j.intake_key).match(/[#&?]gid=(\d+)/)?.[1] ?? null;
-        const k = id + "|" + (gid ?? "");
-        if (seen.has(k)) continue;
-        seen.add(k);
-        sources.push({ sheet_id: id, gid });
+        if (id) add(id, String(j.intake_key).match(/[#&?]gid=(\d+)/)?.[1] ?? null);
+        else if (squash(String(j.intake_key))) byTitle.add(squash(String(j.intake_key)));
+      }
+      // Requirements linked by form name: find that form's spreadsheet from responses already received.
+      if (byTitle.size) {
+        const { data: got } = await db.from("crm_candidates").select("extra").eq("source", "Google Form").limit(20000);
+        for (const c of got || []) {
+          const e = (c.extra || {}) as Record<string, unknown>;
+          if (e._sheet_id && byTitle.has(squash(String(e["Google Form"] ?? "")))) add(String(e._sheet_id), e._sheet_gid ? String(e._sheet_gid) : null);
+        }
       }
       return json({ success: true, sources });
     }
@@ -154,20 +170,29 @@ Deno.serve(async (req) => {
     };
 
     // Existing candidates for duplicate detection.
-    const { data: existing } = await db.from("crm_candidates").select("id, phone, email, source_ref").limit(20000);
+    // The script re-sends the whole sheet every few minutes, so rows can shift when someone deletes
+    // a row. A person is therefore imported once per spreadsheet tab: anyone already received from
+    // this tab (by row, phone or email) is skipped, and HR's removals in the CRM stay removed.
+    const tabKey = `${sheet_id ?? "?"}:${sheet_name ?? "?"}`;
+    const { data: existing } = await db.from("crm_candidates").select("id, phone, email, source_ref, extra").limit(20000);
     const byPhone = new Map<string, string>();
     const byEmail = new Map<string, string>();
     const refs = new Set<string>();
+    const fromTab = new Set<string>();
+    const tabsOf = new Map<string, string[]>();
     (existing || []).forEach((c) => {
       const k = phoneKey(c.phone);
       if (k.length >= 10) byPhone.set(k, c.id);
       if (c.email) byEmail.set(String(c.email).toLowerCase(), c.id);
       if (c.source_ref) refs.add(c.source_ref);
+      const seenTabs = Array.isArray((c.extra as Record<string, unknown> | null)?._tabs) ? ((c.extra as Record<string, unknown>)._tabs as string[]) : [];
+      tabsOf.set(c.id, seenTabs);
+      if (String(c.source_ref ?? "").startsWith(`gform:${tabKey}:`) || seenTabs.includes(tabKey)) fromTab.add(c.id);
     });
 
     let added = 0, matched = 0, skipped = 0, linked = 0, unrouted = 0;
     for (const { row, data } of rows) {
-      const ref = `gform:${sheet_id ?? "?"}:${sheet_name ?? "?"}:${row}`.slice(0, 300);
+      const ref = `gform:${tabKey}:${row}`.slice(0, 300);
       if (refs.has(ref)) { skipped++; continue; }
 
       const rec: Record<string, unknown> = { source: "Google Form", status: "New", source_ref: ref };
@@ -199,14 +224,20 @@ Deno.serve(async (req) => {
       const ek = ((rec.email as string) || "").toLowerCase();
       let candidateId = (pk.length >= 10 && byPhone.get(pk)) || (ek && byEmail.get(ek)) || null;
 
+      if (candidateId && fromTab.has(candidateId)) { skipped++; continue; }
       if (candidateId) {
         matched++;
+        fromTab.add(candidateId);
+        const { data: cur } = await db.from("crm_candidates").select("extra").eq("id", candidateId).single();
+        const curExtra = (cur?.extra || {}) as Record<string, unknown>;
+        await db.from("crm_candidates").update({ extra: { ...curExtra, _tabs: [...(tabsOf.get(candidateId) || []), tabKey] } }).eq("id", candidateId);
         await db.from("crm_activities").insert({ candidate_id: candidateId, kind: "note", content: `Applied again via Google Form "${formTitle}"`, created_by_email: "Google Form" });
       } else {
         const { data: ins, error } = await db.from("crm_candidates").insert(rec).select("id").single();
         if (error) { if (error.code === "23505") { skipped++; continue; } throw error; }
         candidateId = ins.id;
         added++;
+        fromTab.add(candidateId!);
         if (pk.length >= 10) byPhone.set(pk, candidateId!);
         if (ek) byEmail.set(ek, candidateId!);
         await db.from("crm_activities").insert({ candidate_id: candidateId, kind: "note", content: `Applied via Google Form "${formTitle}"`, created_by_email: "Google Form" });
