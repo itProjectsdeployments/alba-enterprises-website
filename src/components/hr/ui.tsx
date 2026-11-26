@@ -117,6 +117,8 @@ export interface HrUi {
   openAddToJob: (opts: { jobId?: string; candidateIds?: string[] }) => void;
   openSchedule: (applicationId?: string, level?: "internal" | "client") => void;
   openBulkSchedule: (jobId?: string, level?: "internal" | "client") => void;
+  /** Move candidates (by application id) to another requirement. */
+  openMove: (applicationIds: string[]) => void;
 }
 export const HrUiContext = createContext<HrUi | null>(null);
 export const useHrUi = () => {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Phone, MessageCircle, Mail, FileText, Check, ChevronRight, Loader2, Upload, Eye, Plus, CalendarPlus, Send, Copy, XCircle, PartyPopper,
+  ArrowRightLeft, UserMinus,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -138,6 +139,17 @@ const ApplicationSheet = ({ id, onClose }: { id: string | null; onClose: () => v
               if (v.trim() && !url) { alert("That doesn't look like a link. Please paste the full Drive link."); return; }
               run(() => updateRow("crm_candidates", candidate.id, { cv_url: url }), { success: url ? "CV link saved" : "CV link removed", refresh: ["crm_candidates"] });
             }}>{candidate.cv_url ? "Change CV link" : "+ CV link"}</Button>
+            <span className="flex-1" />
+            <Button size="sm" variant="outline" onClick={() => ui.openMove([app.id])} title="Shift to a better-suited post"><ArrowRightLeft className="w-4 h-4 mr-1" />Move to another requirement</Button>
+            <Button size="sm" variant="ghost" className="text-rose-700" title="Remove from this requirement" onClick={async () => {
+              if (!confirm(`Remove ${candidate.full_name} from ${job.title}? Their interviews for this requirement are deleted too; the candidate stays in your database.`)) return;
+              const ok = await run(async () => {
+                await logEvent({ candidate_id: candidate.id, job_id: job.id, kind: "stage", content: `Removed from ${job.title}` });
+                await deleteRow("crm_applications", app.id);
+                return true;
+              }, { success: `Removed from ${job.title}`, refresh: ["all"] });
+              if (ok) onClose();
+            }}><UserMinus className="w-4 h-4 mr-1" />Remove</Button>
           </div>
         </SheetHeader>
 

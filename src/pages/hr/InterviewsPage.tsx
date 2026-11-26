@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CalendarPlus, ChevronDown, ChevronRight, MessageCircle, MapPin, Video, Users, Trash2 } from "lucide-react";
+import { CalendarPlus, ChevronDown, ChevronRight, MessageCircle, MapPin, Video, Users, Trash2, ArrowRightLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -191,7 +191,8 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
             <option value="0">same time</option><option value="10">every 10 min</option><option value="15">every 15 min</option><option value="30">every 30 min</option><option value="60">every hour</option>
           </select>
           <Button size="sm" onClick={bulkReschedule} disabled={!reschedule.when}>Apply</Button>
-          <Button size="sm" variant="outline" className="text-rose-700 ml-auto" onClick={() => remove(selIds)}><Trash2 className="w-4 h-4 mr-1" />Delete</Button>
+          <Button size="sm" variant="outline" className="ml-auto" onClick={() => ui.openMove([...new Set(selIds.map((id) => list.find((i) => i.id === id)?.application_id).filter(Boolean) as string[])])}><ArrowRightLeft className="w-4 h-4 mr-1" />Move to requirement</Button>
+          <Button size="sm" variant="outline" className="text-rose-700" onClick={() => remove(selIds)}><Trash2 className="w-4 h-4 mr-1" />Delete</Button>
           <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
         </div>
       )}
@@ -252,6 +253,7 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
                           )}
                           <div className="w-32"><NativeSelect value={i.status} onChange={(v) => setStatus([i.id], v)} options={INTERVIEW_STATUSES} className="h-9" /></div>
                           <div className="w-28"><NativeSelect value={i.result} onChange={(v) => setResult([i.id], v)} options={INTERVIEW_RESULTS} className={`h-9 ${RESULT_TONE[i.result] ?? ""}`} /></div>
+                          <Button size="icon" variant="ghost" className="h-9 w-9 text-muted-foreground hover:text-primary" onClick={() => ui.openMove([i.application_id])} title="Move to another requirement" aria-label={`Move ${c?.full_name} to another requirement`}><ArrowRightLeft className="w-4 h-4" /></Button>
                           <Button size="icon" variant="ghost" className="h-9 w-9 text-muted-foreground hover:text-rose-700" onClick={() => remove([i.id])} title="Delete interview" aria-label={`Delete interview for ${c?.full_name}`}><Trash2 className="w-4 h-4" /></Button>
                         </div>
                       );

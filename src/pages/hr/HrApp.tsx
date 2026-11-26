@@ -20,6 +20,7 @@ import CandidateProfile from "./CandidateProfile";
 import { Screening, Documents, Offers, Followups } from "./Steps";
 import InterviewsPage from "./InterviewsPage";
 import BulkScheduleDialog from "@/components/hr/BulkScheduleDialog";
+import MoveDialog from "@/components/hr/MoveDialog";
 import { Pipeline, Clients, ClientDetail, Tasks, Reports } from "./Workspace";
 import { Inbox, WebsiteJobs } from "./Website";
 import GoogleForms from "./GoogleForms";
@@ -51,6 +52,7 @@ export const HrShell = () => {
   const [schedule, setSchedule] = useState<{ open: boolean; applicationId?: string; level?: "internal" | "client" }>({ open: false });
   const [bulkSchedule, setBulkSchedule] = useState<{ open: boolean; jobId?: string; level?: "internal" | "client" }>({ open: false });
   const [importOpen, setImportOpen] = useState(false);
+  const [move, setMove] = useState<{ open: boolean; ids: string[] }>({ open: false, ids: [] });
 
   const ui: HrUi = useMemo(() => ({
     openApplication: (id) => setAppId(id),
@@ -62,6 +64,7 @@ export const HrShell = () => {
     openAddToJob: (o) => setAddTo({ open: true, ...o }),
     openSchedule: (applicationId, level) => setSchedule({ open: true, applicationId, level }),
     openBulkSchedule: (jobId, level) => setBulkSchedule({ open: true, jobId, level }),
+    openMove: (ids) => setMove({ open: true, ids }),
   }), []);
 
   const tablesMissing = crm.error && /crm_|schema cache|does not exist/i.test(crm.error.message);
@@ -109,6 +112,7 @@ export const HrShell = () => {
       <BulkScheduleDialog open={bulkSchedule.open} onOpenChange={(v) => setBulkSchedule((b) => ({ ...b, open: v }))} jobId={bulkSchedule.jobId} level={bulkSchedule.level ?? "internal"}
         onScheduled={(jobId, level) => navigate(`/hr/${level === "client" ? "client-interviews" : "interviews"}?job=${jobId}`)} />
       <ScheduleDialog open={schedule.open} onOpenChange={(v) => setSchedule({ open: v })} applicationId={schedule.applicationId} level={schedule.level} />
+      <MoveDialog open={move.open} onOpenChange={(v) => setMove((m) => ({ ...m, open: v }))} applicationIds={move.ids} />
       <ImportDialog open={importOpen} onOpenChange={setImportOpen} existing={crm.candidates} onImported={() => refresh("crm_candidates")} />
     </HrUiContext.Provider>
   );

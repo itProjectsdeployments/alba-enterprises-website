@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowDown, ArrowUp, CalendarPlus, ChevronLeft, ChevronRight, Columns3, Download, FileText, Maximize2, MessageCircle, MoreVertical, Phone, Plus, Search, Star, Trash2,
+  ArrowDown, ArrowRightLeft, ArrowUp, CalendarPlus, ChevronLeft, ChevronRight, Columns3, Download, FileText, Maximize2, MessageCircle, MoreVertical, Phone, Plus, Search, Star, Trash2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -319,6 +319,7 @@ const ApplicationsTable = ({ applications, showJob, jobId }: Props) => {
             <option value="">Move to stage…</option>
             {STAGE_VALUES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
+          <Button size="sm" variant="outline" onClick={() => ui.openMove(selIds)}><ArrowRightLeft className="w-4 h-4 mr-1" />Move to another requirement</Button>
           {jobId && <Button size="sm" variant="ghost" className="text-rose-700" onClick={removeFromVacancy}><Trash2 className="w-4 h-4 mr-1" />Remove from vacancy</Button>}
           <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setSelected(new Set())}>Clear</Button>
         </div>
