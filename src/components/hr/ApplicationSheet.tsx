@@ -11,11 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDate, formatDateTime, todayISO, waLink } from "@/lib/crm";
+import { formatDate, formatDateTime, normalizeCvLink, todayISO, waLink } from "@/lib/crm";
 import {
   DOC_STATUSES, DOC_TONE, DOC_TYPES, INTERVIEW_RESULTS, INTERVIEW_STATUSES, OFFER_STATUSES, PROCESS_STEPS, RESULT_TONE, STAGES, STAGE_VALUES,
   type Application, type CrmDocument, type Followup, type Interview,
-  deleteRow, insertRow, logEvent, moveStage, openCv, openDocument, screeningScore, stageTone, updateRow, uploadDocument, useActivities, useCrm,
+  deleteRow, insertRow, levelOfKind, logEvent, moveStage, openCv, openDocument, screeningScore, stageTone, updateRow, uploadDocument, useActivities, useCrm,
 } from "@/lib/hr/model";
 import { NativeSelect, Pill, ScoreInput, useAction, useHrUi } from "./ui";
 
@@ -44,10 +44,12 @@ const ApplicationSheet = ({ id, onClose }: { id: string | null; onClose: () => v
     setOffer({ offer_salary: app.offer_salary, offer_date: app.offer_date, offer_status: app.offer_status, joining_date: app.joining_date, joined_on: app.joined_on });
     setReason("");
     const step = STAGES.find((s) => s.value === app.stage)?.step ?? 3;
-    setTab(app.stage === "Joined" ? "followups" : step >= 6 ? "offer" : step === 5 ? "documents" : step === 4 ? "interviews" : "screening");
+    setTab(app.stage === "Joined" ? "followups" : step >= 7 ? "offer" : step === 6 ? "documents" : step === 5 ? "client" : step === 4 ? "internal" : "screening");
   }, [app?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const interviews = useMemo(() => crm.interviews.filter((i) => i.application_id === id).sort((a, b) => (a.scheduled_at < b.scheduled_at ? 1 : -1)), [crm.interviews, id]);
+  const internalIvs = interviews.filter((i) => levelOfKind(i.kind) === "internal");
+  const clientIvs = interviews.filter((i) => levelOfKind(i.kind) === "client");
   const docs = useMemo(() => crm.documents.filter((d) => d.candidate_id === app?.candidate_id), [crm.documents, app?.candidate_id]);
   const followups = useMemo(() => crm.followups.filter((f) => f.application_id === id), [crm.followups, id]);
 
@@ -56,7 +58,7 @@ const ApplicationSheet = ({ id, onClose }: { id: string | null; onClose: () => v
   }
 
   const ctx = { job, candidate, applications: crm.applications, documents: crm.documents };
-  const currentStep = app.stage === "Joined" ? 7 : (STAGES.find((s) => s.value === app.stage)?.step ?? 0);
+  const currentStep = app.stage === "Joined" ? 8 : (STAGES.find((s) => s.value === app.stage)?.step ?? 0);
   const closed = app.stage === "Rejected" || app.stage === "Dropped";
   const flowIdx = FLOW.indexOf(app.stage);
   const next = flowIdx >= 0 && flowIdx < FLOW.length - 1 ? FLOW[flowIdx + 1] : null;
@@ -88,7 +90,7 @@ const ApplicationSheet = ({ id, onClose }: { id: string | null; onClose: () => v
   const sendToClient = async () => {
     if (client?.contact_phone) window.open(`${waLink(client.contact_phone)}?text=${encodeURIComponent(profileText)}`, "_blank", "noopener,noreferrer");
     else { await navigator.clipboard.writeText(profileText).catch(() => {}); toast({ title: "Profile copied", description: "Client has no phone saved, so paste it into WhatsApp or email." }); }
-    if (app.stage !== "CV Sent to Client" && flowIdx < FLOW.indexOf("CV Sent to Client")) go("CV Sent to Client");
+    if (flowIdx < FLOW.indexOf("CV Sent to Client")) go("CV Sent to Client");
   };
 
   const joiningText = [
@@ -129,12 +131,19 @@ const ApplicationSheet = ({ id, onClose }: { id: string | null; onClose: () => v
             {candidate.phone && <Button size="sm" variant="outline" asChild><a href={waLink(candidate.phone)} target="_blank" rel="noopener noreferrer"><MessageCircle className="w-4 h-4 mr-1" />WhatsApp</a></Button>}
             {candidate.email && <Button size="sm" variant="outline" asChild><a href={`mailto:${candidate.email}`}><Mail className="w-4 h-4 mr-1" />Email</a></Button>}
             {candidate.cv_url && <Button size="sm" variant="outline" onClick={() => openCv(candidate.cv_url!)}><FileText className="w-4 h-4 mr-1" />CV</Button>}
+            <Button size="sm" variant="ghost" onClick={() => {
+              const v = prompt("Paste the CV link (Google Drive or any link):", candidate.cv_url && !candidate.cv_url.startsWith("crm-docs:") ? candidate.cv_url : "");
+              if (v === null) return;
+              const url = normalizeCvLink(v);
+              if (v.trim() && !url) { alert("That doesn't look like a link. Please paste the full Drive link."); return; }
+              run(() => updateRow("crm_candidates", candidate.id, { cv_url: url }), { success: url ? "CV link saved" : "CV link removed", refresh: ["crm_candidates"] });
+            }}>{candidate.cv_url ? "Change CV link" : "+ CV link"}</Button>
           </div>
         </SheetHeader>
 
-        {/* 7-step progress */}
+        {/* 8-step progress */}
         <div className="px-6 py-4 border-b">
-          <ol className="grid grid-cols-7 gap-1">
+          <ol className="grid grid-cols-8 gap-1">
             {PROCESS_STEPS.map((s) => {
               const done = !closed && s.n < currentStep;
               const active = !closed && s.n === currentStep;
@@ -176,10 +185,11 @@ const ApplicationSheet = ({ id, onClose }: { id: string | null; onClose: () => v
         <Tabs value={tab} onValueChange={setTab} className="p-6">
           <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="screening">3 · Screening</TabsTrigger>
-            <TabsTrigger value="interviews">4 · Interviews ({interviews.length})</TabsTrigger>
-            <TabsTrigger value="documents">5 · Documents ({docs.filter((d) => d.status === "Verified").length}/{docs.length})</TabsTrigger>
-            <TabsTrigger value="offer">6 · Offer & Joining</TabsTrigger>
-            <TabsTrigger value="followups">7 · Follow-ups</TabsTrigger>
+            <TabsTrigger value="internal">4 · Internal ({internalIvs.length})</TabsTrigger>
+            <TabsTrigger value="client">5 · Client ({clientIvs.length})</TabsTrigger>
+            <TabsTrigger value="documents">6 · Documents ({docs.filter((d) => d.status === "Verified").length}/{docs.length})</TabsTrigger>
+            <TabsTrigger value="offer">7 · Offer & Joining</TabsTrigger>
+            <TabsTrigger value="followups">8 · Follow-ups</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
 
@@ -199,25 +209,48 @@ const ApplicationSheet = ({ id, onClose }: { id: string | null; onClose: () => v
             </div>
             <div className="flex flex-wrap gap-2">
               {flowIdx < FLOW.indexOf("Shortlisted") && <Button variant="outline" onClick={() => go("Shortlisted")} disabled={busy}><Check className="w-4 h-4 mr-1" />Shortlist</Button>}
-              <Button onClick={sendToClient}><Send className="w-4 h-4 mr-1" />Send profile to client{client?.contact_phone ? " on WhatsApp" : ""}</Button>
+              <Button onClick={() => ui.openSchedule(app.id, "internal")}><CalendarPlus className="w-4 h-4 mr-1" />Schedule internal interview</Button>
+            </div>
+          </TabsContent>
+
+          {/* Step 4: internal interview */}
+          <TabsContent value="internal" className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground">Your own screening interview. If the candidate passes, they move to the client interview (Step 5).</p>
+            <Button onClick={() => ui.openSchedule(app.id, "internal")}><CalendarPlus className="w-4 h-4 mr-1" />Schedule internal interview</Button>
+            {internalIvs.length === 0 && <p className="text-sm text-muted-foreground">No internal interview yet.</p>}
+            {internalIvs.map((iv) => <InterviewRow key={iv.id} iv={iv} onPassed={() => app.stage === "Internal Interview" && confirm("Passed the internal interview. Move to Step 5 (client interview)?") && go("CV Sent to Client")} />)}
+          </TabsContent>
+
+          {/* Step 5: client interview & selection (any number of rounds) */}
+          <TabsContent value="client" className="space-y-4 pt-4">
+            <p className="text-sm text-muted-foreground">Send the profile, then add every round the client wants: final interview, trial, physical or extra rounds. When all are passed, move the candidate to documents.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={sendToClient}><Send className="w-4 h-4 mr-1" />Send profile to client{client?.contact_phone ? " on WhatsApp" : ""}</Button>
               <Button variant="ghost" onClick={async () => { await navigator.clipboard.writeText(profileText); toast({ title: "Profile summary copied" }); }}><Copy className="w-4 h-4 mr-1" />Copy summary</Button>
+              <Button onClick={() => ui.openSchedule(app.id, "client")}><CalendarPlus className="w-4 h-4 mr-1" />Add client round</Button>
             </div>
             {app.cv_sent_at && <p className="text-xs text-muted-foreground">Profile sent to client on {formatDateTime(app.cv_sent_at)}</p>}
+            {clientIvs.length === 0 && <p className="text-sm text-muted-foreground">No client rounds yet.</p>}
+            {[...clientIvs].reverse().map((iv, k) => (
+              <div key={iv.id}>
+                <p className="text-xs font-semibold text-muted-foreground mb-1">Round {k + 1}</p>
+                <InterviewRow iv={iv} onPassed={() => {}} />
+              </div>
+            ))}
+            {clientIvs.length > 0 && FLOW.indexOf(app.stage) < FLOW.indexOf("Documents") && (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 flex flex-wrap items-center gap-3">
+                <span className="text-sm text-emerald-900 flex-1">All client rounds done and the candidate is selected?</span>
+                <Button size="sm" onClick={() => go("Documents")} disabled={busy}><Check className="w-4 h-4 mr-1" />Selected: move to documents</Button>
+              </div>
+            )}
           </TabsContent>
 
-          {/* Step 4 */}
-          <TabsContent value="interviews" className="space-y-4 pt-4">
-            <Button onClick={() => ui.openSchedule(app.id)}><CalendarPlus className="w-4 h-4 mr-1" />Schedule interview / trial</Button>
-            {interviews.length === 0 && <p className="text-sm text-muted-foreground">No interviews yet.</p>}
-            {interviews.map((iv) => <InterviewRow key={iv.id} iv={iv} onPassed={() => next && FLOW.indexOf(app.stage) <= FLOW.indexOf("Interview / Trial") && go("Documents")} />)}
-          </TabsContent>
-
-          {/* Step 5 */}
+          {/* Step 6 */}
           <TabsContent value="documents" className="pt-4">
             <DocumentsPanel candidateId={candidate.id} docs={docs} />
           </TabsContent>
 
-          {/* Step 6 */}
+          {/* Step 7 */}
           <TabsContent value="offer" className="space-y-5 pt-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div><Label>Offered salary</Label><Input value={offer.offer_salary ?? ""} onChange={(e) => setOffer({ ...offer, offer_salary: e.target.value })} placeholder="e.g. ₹24,000/month + food & stay" /></div>
@@ -234,10 +267,10 @@ const ApplicationSheet = ({ id, onClose }: { id: string | null; onClose: () => v
                 <Button variant="ghost" asChild><a href={`${waLink(candidate.phone)}?text=${encodeURIComponent(joiningText)}`} target="_blank" rel="noopener noreferrer"><MessageCircle className="w-4 h-4 mr-1" />Send joining details</a></Button>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">Marking as Joined schedules the Step 7 follow-ups automatically and marks the candidate as Placed.</p>
+            <p className="text-xs text-muted-foreground">Marking as Joined schedules the Step 8 follow-ups automatically and marks the candidate as Placed.</p>
           </TabsContent>
 
-          {/* Step 7 */}
+          {/* Step 8 */}
           <TabsContent value="followups" className="space-y-3 pt-4">
             {followups.length === 0 && <p className="text-sm text-muted-foreground">Follow-ups are created automatically when the candidate joins. You can also add one manually.</p>}
             {followups.map((f) => <FollowupRow key={f.id} f={f} />)}

@@ -8,11 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { toISODate } from "@/lib/crm";
-import { INTERVIEW_KINDS, INTERVIEW_MODES, positionAnswerOf, stageIndex, stageTone, useCrm } from "@/lib/hr/model";
+import { CLIENT_KINDS, INTERNAL_KINDS, INTERVIEW_MODES, positionAnswerOf, stageForLevel, stageIndex, stageTone, useCrm } from "@/lib/hr/model";
 import { F, useOpenReset } from "./dialogs";
 import { NativeSelect, Pill, useAction } from "./ui";
 
-const PRE_INTERVIEW = ["Sourced", "Screening", "Shortlisted", "CV Sent to Client"];
+const PRE: Record<"internal" | "client", string[]> = {
+  internal: ["Sourced", "Screening", "Shortlisted"],
+  client: ["Internal Interview", "CV Sent to Client"],
+};
 const GAPS = [
   { value: "0", label: "Same time for everyone" },
   { value: "10", label: "Every 10 minutes" },
@@ -25,9 +28,11 @@ const GAPS = [
 const fmtTime = (d: Date) => d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 
 /** Schedule one interview session for many candidates of a requirement at once. Times can be changed per person later. */
-const BulkScheduleDialog = ({ open, onOpenChange, jobId, onScheduled }: {
-  open: boolean; onOpenChange: (v: boolean) => void; jobId?: string; onScheduled?: (jobId: string) => void;
+const BulkScheduleDialog = ({ open, onOpenChange, jobId, onScheduled, level = "internal" }: {
+  open: boolean; onOpenChange: (v: boolean) => void; jobId?: string; onScheduled?: (jobId: string, level: "internal" | "client") => void; level?: "internal" | "client";
 }) => {
+  const PRE_INTERVIEW = PRE[level];
+  const target = stageForLevel(level);
   const crm = useCrm();
   const run = useAction();
   const { toast } = useToast();
@@ -47,7 +52,9 @@ const BulkScheduleDialog = ({ open, onOpenChange, jobId, onScheduled }: {
     const tomorrow = toISODate(new Date(Date.now() + 86400000));
     const jj = crm.job.get(j);
     const c = jj?.client_id ? crm.client.get(jj.client_id) : undefined;
-    setForm({ kind: "Client Interview", mode: "In-person", date: tomorrow, time: "11:00", gap: "0", location: c ? [c.name, c.address || c.city].filter(Boolean).join(", ") : "", interviewer: c?.contact_person ?? "", notes: "" });
+    setForm(level === "client"
+      ? { kind: "Client Interview", mode: "In-person", date: tomorrow, time: "11:00", gap: "0", location: c ? [c.name, c.address || c.city].filter(Boolean).join(", ") : "", interviewer: c?.contact_person ?? "", notes: "" }
+      : { kind: "Internal Screening", mode: "Phone", date: tomorrow, time: "11:00", gap: "15", location: "", interviewer: "", notes: "" });
   });
 
   const upcomingFor = useMemo(() => {
@@ -92,9 +99,9 @@ const BulkScheduleDialog = ({ open, onOpenChange, jobId, onScheduled }: {
         const { error } = await supabase.from("crm_interviews").insert(rows.slice(i, i + 200));
         if (error) throw error;
       }
-      const toMove = ordered.filter((a) => stageIndex(a.stage) < stageIndex("Interview / Trial")).map((a) => a.id);
+      const toMove = ordered.filter((a) => stageIndex(a.stage) < stageIndex(target)).map((a) => a.id);
       if (toMove.length) {
-        const { error } = await supabase.from("crm_applications").update({ stage: "Interview / Trial" }).in("id", toMove);
+        const { error } = await supabase.from("crm_applications").update({ stage: target }).in("id", toMove);
         if (error) throw error;
       }
       await supabase.from("crm_candidates").update({ status: "In Process" }).in("id", ordered.map((a) => a.candidate_id)).in("status", ["New", "Contacted", "Interested"]);
@@ -109,7 +116,7 @@ const BulkScheduleDialog = ({ open, onOpenChange, jobId, onScheduled }: {
     if (ok) {
       toast({ title: `${ordered.length} interview(s) scheduled`, description: `${jobRow.title}: you can change any candidate's time on the Interviews page.` });
       onOpenChange(false);
-      onScheduled?.(jobRow.id);
+      onScheduled?.(jobRow.id, level);
     }
   };
 
@@ -119,8 +126,8 @@ const BulkScheduleDialog = ({ open, onOpenChange, jobId, onScheduled }: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[94vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><CalendarPlus className="w-5 h-5 text-primary" />Schedule interviews for many candidates</DialogTitle>
-          <DialogDescription>Step 4: pick the vacancy, tick the candidates, set one date and time. You can change each person's time afterwards.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2"><CalendarPlus className="w-5 h-5 text-primary" />{level === "client" ? "Schedule client rounds for many candidates" : "Schedule internal interviews for many candidates"}</DialogTitle>
+          <DialogDescription>{level === "client" ? "Step 5" : "Step 4"}: pick the vacancy, tick the candidates, set one date and time. You can change each person's time afterwards.</DialogDescription>
         </DialogHeader>
 
         <F label="Vacancy">
@@ -133,7 +140,7 @@ const BulkScheduleDialog = ({ open, onOpenChange, jobId, onScheduled }: {
         {job && (
           <>
             <div className="flex flex-wrap items-center gap-2">
-              {[["pre", "Not yet interviewed"], ["Interview / Trial", "Already in interview"], ["all", "All active"]].map(([v, l]) => (
+              {[["pre", level === "client" ? "Passed internal interview" : "Not yet interviewed"], [target, level === "client" ? "Already in client rounds" : "Already in internal interview"], ["all", "All active"]].map(([v, l]) => (
                 <Button key={v} size="sm" variant={stageFilter === v ? "default" : "outline"} onClick={() => setStageFilter(v)}>{l} <span className="ml-1 opacity-70">{stageCounts(v)}</span></Button>
               ))}
               <div className="relative flex-1 min-w-[200px]">
@@ -160,7 +167,7 @@ const BulkScheduleDialog = ({ open, onOpenChange, jobId, onScheduled }: {
             </div>
 
             <div className="grid sm:grid-cols-4 gap-4">
-              <F label="Type"><NativeSelect value={form.kind} onChange={(v) => setForm({ ...form, kind: v })} options={INTERVIEW_KINDS} /></F>
+              <F label="Type"><NativeSelect value={form.kind} onChange={(v) => setForm({ ...form, kind: v })} options={level === "client" ? CLIENT_KINDS : INTERNAL_KINDS} /></F>
               <F label="Mode"><NativeSelect value={form.mode} onChange={(v) => setForm({ ...form, mode: v })} options={INTERVIEW_MODES} /></F>
               <F label="Date"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></F>
               <F label="Start time"><Input type="time" value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></F>

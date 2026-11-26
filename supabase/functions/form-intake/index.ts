@@ -83,13 +83,47 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { token, form, sheet_id, sheet_name, sheet_gid } = body ?? {};
     const rows: { row: number; data: Record<string, unknown> }[] = Array.isArray(body?.rows) ? body.rows : [];
-    if (typeof token !== "string" || !rows.length) return json({ error: "token and rows are required" }, 400);
+    const action = typeof body?.action === "string" ? body.action : "rows";
+    if (typeof token !== "string" || (action === "rows" && !rows.length)) return json({ error: "token and rows are required" }, 400);
     if (rows.length > 500) return json({ error: "Send at most 500 rows per request" }, 400);
 
     const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
     const { data: setting } = await db.from("crm_settings").select("value").eq("key", "form_intake_token").maybeSingle();
     if (!setting?.value || !safeEqual(token, setting.value)) return json({ error: "Invalid token" }, 401);
+
+    const setStatus = async (id: string, patch: Record<string, unknown>) => {
+      if (!id) return;
+      const key = `sheet_status:${id}`.slice(0, 200);
+      const { data: prev } = await db.from("crm_settings").select("value").eq("key", key).maybeSingle();
+      let old: Record<string, unknown> = {};
+      try { old = prev?.value ? JSON.parse(prev.value) : {}; } catch { old = {}; }
+      await db.from("crm_settings").upsert({ key, value: JSON.stringify({ ...old, ...patch }), updated_at: new Date().toISOString() });
+    };
+
+    // The master Apps Script asks which spreadsheets are linked to requirements.
+    if (action === "sources") {
+      const { data } = await db.from("crm_jobs").select("intake_key, status").not("intake_key", "is", null);
+      const seen = new Set<string>();
+      const sources: { sheet_id: string; gid: string | null }[] = [];
+      for (const j of data || []) {
+        if (j.status === "Closed" || j.status === "Filled") continue;
+        const id = String(j.intake_key).match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1];
+        if (!id) continue;
+        const gid = String(j.intake_key).match(/[#&?]gid=(\d+)/)?.[1] ?? null;
+        const k = id + "|" + (gid ?? "");
+        if (seen.has(k)) continue;
+        seen.add(k);
+        sources.push({ sheet_id: id, gid });
+      }
+      return json({ success: true, sources });
+    }
+    // The script reports whether it could open a spreadsheet.
+    if (action === "status") {
+      const id = String(sheet_id ?? "");
+      await setStatus(id, body.error ? { checked_at: new Date().toISOString(), error: String(body.error).slice(0, 300) } : { checked_at: new Date().toISOString(), error: null, rows: body.rows ?? null });
+      return json({ success: true });
+    }
 
     const formTitle = String(form || sheet_name || "Google Form").slice(0, 200);
     const { data: jobs } = await db.from("crm_jobs").select("id, title, intake_key, status").not("intake_key", "is", null);
@@ -193,6 +227,7 @@ Deno.serve(async (req) => {
       }
     }
 
+    await setStatus(String(sheet_id ?? ""), { last_received: new Date().toISOString(), error: null });
     return json({ success: true, form: formTitle, requirements: linkedJobs.map((j) => j.title), added, matched_existing: matched, skipped, added_to_requirement: linked, position_not_matched: unrouted });
   } catch (err) {
     console.error("form-intake error:", err);

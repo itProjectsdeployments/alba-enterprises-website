@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { ClipboardList, Link2, Unlink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -82,51 +84,77 @@ export const FormsTable = () => {
   );
 };
 
-/** Requirement page: link this vacancy to its Google Form. */
+const ago = (iso?: string | null) => {
+  if (!iso) return null;
+  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  return m < 1 ? "just now" : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : formatDateTime(iso);
+};
+
+/** Requirement page: link this vacancy to its Google Form response spreadsheet. */
 export const RequirementFormCard = ({ job }: { job: Job }) => {
   const crm = useCrm();
   const link = useLinker();
   const [manual, setManual] = useState("");
-  const forms = listForms(crm.candidates, crm.jobs);
   const linked = job.intake_key;
-  const routed = linked ? crm.candidates.filter((c) => routeFormApplicant(c, crm.jobs)?.id === job.id).length : 0;
+  const sheetId = sheetIdFromLink(linked);
+  // People actually on this vacancy who came from the form (matches what the table shows).
+  const routed = linked ? crm.applications.filter((x) => { const c = crm.candidate.get(x.candidate_id); return x.job_id === job.id && !!c && intakeMatches(linked, c); }).length : 0;
   const total = linked ? crm.candidates.filter((c) => intakeMatches(linked, c)).length : 0;
   const shared = linked ? crm.jobs.filter((j) => j.id !== job.id && j.intake_key === linked) : [];
-  const isSheet = !!sheetIdFromLink(linked);
+
+  const status = useQuery({
+    queryKey: ["crm", "crm_settings", "sheet_status", sheetId],
+    enabled: !!sheetId,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data } = await supabase.from("crm_settings").select("value").eq("key", `sheet_status:${sheetId}`).maybeSingle();
+      try { return data?.value ? (JSON.parse(data.value) as { checked_at?: string; last_received?: string; error?: string | null; rows?: number }) : null; } catch { return null; }
+    },
+  });
+
+  const value = manual.trim();
+  const looksLikeForm = /docs\.google\.com\/forms\//.test(value);
 
   return (
     <Card title="Google Form" icon={ClipboardList}>
       {linked ? (
         <div className="space-y-3">
           <p className="text-sm">
-            Applicants from {isSheet ? <a href={linked} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">this response spreadsheet</a> : <strong>"{linked}"</strong>} are added to this pipeline automatically.
+            Applicants from {sheetId ? <a href={linked} target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">this response spreadsheet</a> : <strong>"{linked}"</strong>} are added to this vacancy automatically.
           </p>
+          {sheetId && (
+            status.data?.error ? (
+              <p className="text-xs rounded-md bg-rose-50 border border-rose-200 text-rose-900 p-2">⚠ {status.data.error}</p>
+            ) : status.data?.checked_at ? (
+              <p className="text-xs rounded-md bg-emerald-50 border border-emerald-200 text-emerald-900 p-2">
+                ✓ Syncing: checked {ago(status.data.checked_at)}{status.data.rows != null ? `, ${status.data.rows} row(s) in the sheet` : ""}.
+              </p>
+            ) : (
+              <p className="text-xs rounded-md bg-amber-50 border border-amber-200 text-amber-900 p-2">
+                Waiting for the first sync (up to 5 minutes). Nothing after that? Make sure the Alba Recruit script is set up once: <Link to="/hr/google-forms" className="underline">see steps</Link>.
+              </p>
+            )
+          )}
           {shared.length > 0 && (
             <p className="text-xs rounded-md bg-sky-50 border border-sky-200 text-sky-900 p-2">
-              This form is shared with {shared.map((j) => j.title).join(", ")}. Applicants are sorted by the position they chose in the form.
+              Shared with {shared.map((j) => j.title).join(", ")}: applicants are sorted by the position they chose in the form.
             </p>
           )}
-          <p className="text-xs text-muted-foreground">
-            {routed} applicant(s) for this vacancy{shared.length ? ` (out of ${total} form responses)` : ""}.
-            {total === 0 && <> Nothing yet? The script must be set up in that spreadsheet first: <Link to="/hr/google-forms" className="text-primary">see steps</Link>.</>}
-          </p>
-          <Button size="sm" variant="outline" onClick={() => link(linked, null, job.id)}><Unlink className="w-4 h-4 mr-1" />Unlink form</Button>
+          <p className="text-xs text-muted-foreground">{routed} applicant(s) for this vacancy{shared.length ? ` (out of ${total} form responses)` : ""}.</p>
+          <Button size="sm" variant="outline" onClick={() => link(linked, null, job.id)}><Unlink className="w-4 h-4 mr-1" />Unlink</Button>
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">Running an ad with a Google Form for this vacancy? Link it so applicants land here automatically. The same form can be linked to several vacancies.</p>
-          {(forms.length > 0 || crm.jobs.some((j) => j.intake_key)) && (
-            <NativeSelect value="" onChange={(v) => v && link(v, job.id)} placeholder="Choose a form already in use…"
-              options={[...new Set(crm.jobs.map((j) => j.intake_key).filter(Boolean) as string[])].map((k) => {
-                const users = crm.jobs.filter((j) => j.intake_key === k).map((j) => j.title).join(", ");
-                return { value: k, label: `${sheetIdFromLink(k) ? "Spreadsheet" : k} (used by ${users})` };
-              }).concat(forms.filter((f) => !f.jobs.length).map((f) => ({ value: f.title, label: `${f.title} (${f.count} responses, not linked)` })))} />
-          )}
+          <p className="text-sm text-muted-foreground">
+            Paste the link of this vacancy's <strong>response spreadsheet</strong> (in the form: Responses → View in Sheets, then copy the address). Applicants will appear here automatically.
+          </p>
           <div className="flex gap-2">
-            <Input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Paste the response spreadsheet link, or the form title" />
-            <Button size="sm" disabled={!manual.trim()} onClick={async () => { await link(manual.trim(), job.id); setManual(""); }}>Link</Button>
+            <Input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/…" />
+            <Button size="sm" disabled={!value || looksLikeForm} onClick={async () => { await link(value, job.id); setManual(""); }}>Link</Button>
           </div>
-          <Link to="/hr/google-forms" className="text-xs text-primary">How to connect your forms</Link>
+          {looksLikeForm && <p className="text-xs text-rose-700">That is the form link. Please paste the <strong>response spreadsheet</strong> link (Responses → View in Sheets).</p>}
+          <p className="text-xs text-muted-foreground">One form for two positions? Paste the same spreadsheet link on both vacancies.</p>
+          <Link to="/hr/google-forms" className="text-xs text-primary">First time? Set up the sync once</Link>
         </div>
       )}
     </Card>

@@ -104,6 +104,15 @@ export const cleanPhone = (p: string) => {
   return t;
 };
 
+/** Accepts a Google Drive / Dropbox / any link to a CV. Adds https:// when missing; returns null when empty or not a link. */
+export const normalizeCvLink = (v?: string | null) => {
+  const t = (v || "").trim();
+  if (!t) return null;
+  if (/^https?:\/\//i.test(t)) return t;
+  if (/^(drive|docs)\.google\.com|^www\.|^[a-z0-9-]+\.[a-z]{2,}\//i.test(t)) return "https://" + t;
+  return null;
+};
+
 export const waLink = (p?: string | null) => {
   const d = (p || "").replace(/\D/g, "");
   return `https://wa.me/${d.length === 10 ? "91" + d : d}`;

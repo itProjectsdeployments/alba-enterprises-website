@@ -12,73 +12,84 @@ import { FormsTable } from "@/components/hr/FormLink";
 
 const ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/form-intake`;
 
-const buildScript = (token: string) => `// Alba Recruit: sends Google Form responses to the HR CRM automatically.
-// Paste into the RESPONSE SPREADSHEET: Extensions > Apps Script. Then run "setup" once.
+const buildScript = (token: string) => `// Alba Recruit: ONE script that syncs every Google Form spreadsheet linked in the CRM.
+// Install once at script.google.com (New project), paste this, save, then run "setup".
+// After that, just paste a spreadsheet link into a requirement in the CRM: nothing to install per sheet.
 const ENDPOINT = "${ENDPOINT}";
 const TOKEN = "${token}";
 
-// Run once: instant sync on every form submission, a safety check every 5 minutes
-// (catches rows typed into the sheet by hand or any missed submission), and
-// imports everyone who has already applied.
+// Run once: checks every 5 minutes and imports everything already in the linked sheets.
 function setup() {
-  const ss = SpreadsheetApp.getActive();
   ScriptApp.getProjectTriggers()
-    .filter(t => ["onFormResponse", "syncNewRows"].indexOf(t.getHandlerFunction()) >= 0)
+    .filter(t => ["syncAll", "onFormResponse", "syncNewRows"].indexOf(t.getHandlerFunction()) >= 0)
     .forEach(t => ScriptApp.deleteTrigger(t));
-  ScriptApp.newTrigger("onFormResponse").forSpreadsheet(ss).onFormSubmit().create();
-  ScriptApp.newTrigger("syncNewRows").timeBased().everyMinutes(5).create();
-  importAllExisting();
+  PropertiesService.getScriptProperties().deleteAllProperties();
+  ScriptApp.newTrigger("syncAll").timeBased().everyMinutes(5).create();
+  syncAll();
 }
 
-// Runs automatically every time someone submits a linked form.
+// Every 5 minutes: asks the CRM which spreadsheets are linked and sends their new rows.
+function syncAll() {
+  const props = PropertiesService.getScriptProperties();
+  const sources = (call_({ action: "sources" }).sources || []);
+  sources.forEach(src => {
+    let ss;
+    try { ss = SpreadsheetApp.openById(src.sheet_id); }
+    catch (err) {
+      call_({ action: "status", sheet_id: src.sheet_id, error: "This Google account cannot open the spreadsheet. Share it with the account that installed the script." });
+      return;
+    }
+    ensureInstantSync_(ss, props);
+    let total = 0;
+    tabs_(ss, src.gid).forEach(sheet => {
+      const key = "last_" + src.sheet_id + "_" + sheet.getSheetId();
+      const last = Number(props.getProperty(key) || 1);
+      const all = sheet.getDataRange().getDisplayValues();
+      total += Math.max(0, all.length - 1);
+      if (all.length <= last) return;
+      const rows = [];
+      for (let r = last; r < all.length; r++) if (all[r].some(v => v !== "")) rows.push({ row: r + 1, values: all[r] });
+      for (let i = 0; i < rows.length; i += 200) send_(ss, sheet, all[0], rows.slice(i, i + 200));
+      props.setProperty(key, String(all.length));
+    });
+    call_({ action: "status", sheet_id: src.sheet_id, rows: total });
+  });
+}
+
+// Instant sync when someone submits a form linked to one of these spreadsheets.
 function onFormResponse(e) {
   const sheet = e.range.getSheet();
   const all = sheet.getDataRange().getDisplayValues();
-  send_(sheet, all[0], [{ row: e.range.getRow(), values: all[e.range.getRow() - 1] }]);
+  send_(sheet.getParent(), sheet, all[0], [{ row: e.range.getRow(), values: all[e.range.getRow() - 1] }]);
 }
 
-// Runs every 5 minutes: sends any rows added since the last check.
-function syncNewRows() {
-  const props = PropertiesService.getScriptProperties();
-  sheets_().forEach(sheet => {
-    const key = "lastRow_" + sheet.getSheetId();
-    const last = Number(props.getProperty(key) || 1);
-    const all = sheet.getDataRange().getDisplayValues();
-    if (all.length <= last) return;
-    const rows = [];
-    for (let r = last; r < all.length; r++) if (all[r].some(v => v !== "")) rows.push({ row: r + 1, values: all[r] });
-    for (let i = 0; i < rows.length; i += 200) send_(sheet, all[0], rows.slice(i, i + 200));
-    props.setProperty(key, String(all.length));
-  });
+function ensureInstantSync_(ss, props) {
+  const key = "trigger_" + ss.getId();
+  if (props.getProperty(key)) return;
+  try { ScriptApp.newTrigger("onFormResponse").forSpreadsheet(ss).onFormSubmit().create(); props.setProperty(key, "1"); } catch (err) {}
 }
 
-// Safe to run any time: rows already in the CRM are skipped.
-function importAllExisting() {
-  const props = PropertiesService.getScriptProperties();
-  sheets_().forEach(sheet => {
-    const all = sheet.getDataRange().getDisplayValues();
-    const rows = [];
-    for (let r = 1; r < all.length; r++) if (all[r].some(v => v !== "")) rows.push({ row: r + 1, values: all[r] });
-    for (let i = 0; i < rows.length; i += 200) send_(sheet, all[0], rows.slice(i, i + 200));
-    props.setProperty("lastRow_" + sheet.getSheetId(), String(all.length));
-  });
-}
-
-function sheets_() {
-  const sheets = SpreadsheetApp.getActive().getSheets();
+function tabs_(ss, gid) {
+  const sheets = ss.getSheets();
+  if (gid) { const t = sheets.filter(s => String(s.getSheetId()) === String(gid)); if (t.length) return t; }
   const formSheets = sheets.filter(s => s.getFormUrl());
   return formSheets.length ? formSheets : [sheets[0]];
 }
 
-function send_(sheet, headers, rows) {
+function send_(ss, sheet, headers, rows) {
   let form = sheet.getName();
   try { const url = sheet.getFormUrl(); if (url) form = FormApp.openByUrl(url).getTitle(); } catch (err) {}
-  const payload = {
-    token: TOKEN, form, sheet_id: SpreadsheetApp.getActive().getId(), sheet_name: sheet.getName(), sheet_gid: sheet.getSheetId(),
+  const res = call_({
+    form, sheet_id: ss.getId(), sheet_name: sheet.getName(), sheet_gid: sheet.getSheetId(),
     rows: rows.map(r => { const data = {}; headers.forEach((h, i) => { if (h) data[h] = r.values[i]; }); return { row: r.row, data }; }),
-  };
+  });
+  console.log(form + ": " + JSON.stringify(res));
+}
+
+function call_(payload) {
+  payload.token = TOKEN;
   const res = UrlFetchApp.fetch(ENDPOINT, { method: "post", contentType: "application/json", payload: JSON.stringify(payload), muteHttpExceptions: true });
-  console.log(form + ": " + res.getContentText());
+  try { return JSON.parse(res.getContentText()); } catch (err) { return {}; }
 }
 `;
 
@@ -143,23 +154,20 @@ const GoogleForms = () => {
       <FormsTable />
 
       <div className="grid xl:grid-cols-5 gap-6">
-        <Card title="One-time setup (about 3 minutes per spreadsheet)" className="xl:col-span-3">
+        <Card title="One-time setup (about 3 minutes, once for all forms)" className="xl:col-span-3">
           <ol className="space-y-5">
-            <Step n={1} title="Tip: send all your forms to ONE spreadsheet">
-              <p>In each Google Form open <strong>Responses → Link to Sheets → Select existing spreadsheet</strong> and pick the same sheet. Each form gets its own tab, and one script then covers every form.</p>
+            <Step n={1} title="Open Google Apps Script (one time only)">
+              <p>Go to <a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener noreferrer" className="text-primary underline">script.google.com → New project</a>, signed in with the Google account that owns your form spreadsheets.</p>
             </Step>
-            <Step n={2} title="Open Apps Script in the response spreadsheet">
-              <p>In the spreadsheet: <strong>Extensions → Apps Script</strong>. Delete any code you see there.</p>
+            <Step n={2} title="Paste the script and save">
+              <p>Delete the sample code, click <strong>Copy script</strong> on this page, paste it, and press <strong>Ctrl + S</strong>. Name the project "Alba Recruit sync".</p>
             </Step>
-            <Step n={3} title="Paste the script and save">
-              <p>Click <strong>Copy script</strong> on this page, paste it in, then click the 💾 Save icon.</p>
+            <Step n={3} title='Run "setup" once'>
+              <p>Choose <strong>setup</strong> in the function menu at the top and click <strong>Run</strong>. Allow the permissions: <strong>Review permissions → your account → Advanced → Go to project → Allow</strong>.</p>
             </Step>
-            <Step n={4} title='Run "setup" once'>
-              <p>Choose <strong>setup</strong> in the function menu at the top and click <strong>Run</strong>. Google asks for permission: click <strong>Review permissions → your account → Advanced → Go to project → Allow</strong>.</p>
-              <p>This switches on automatic sync (instantly on each submission, plus a check every 5 minutes for rows added by hand) and imports everyone who has already applied.</p>
-            </Step>
-            <Step n={5} title="Done">
-              <p>From now on every new response appears in <Link to="/hr/candidates" className="text-primary">Candidates</Link> within seconds, with source "Google Form". People who apply twice are not duplicated.</p>
+            <Step n={4} title="Link each form to its requirement">
+              <p>For every vacancy, open the requirement in the CRM and paste the link of its <strong>response spreadsheet</strong> in the <strong>Google Form</strong> box. (In the form: <strong>Responses → View in Sheets</strong>, then copy the browser address.)</p>
+              <p>Applicants arrive within 5 minutes, instantly for new submissions. <strong>Nothing needs to be installed in the spreadsheets themselves.</strong></p>
             </Step>
           </ol>
         </Card>

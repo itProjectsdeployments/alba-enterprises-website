@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { todayISO, toISODate, waLink } from "@/lib/crm";
 import {
-  INTERVIEW_RESULTS, INTERVIEW_STATUSES, RESULT_TONE, type Interview, logEvent, moveStage, positionAnswerOf, updateRow, useCrm,
+  INTERVIEW_RESULTS, INTERVIEW_STATUSES, RESULT_TONE, type Interview, levelOfKind, logEvent, moveStage, positionAnswerOf, updateRow, useCrm,
 } from "@/lib/hr/model";
 import { EmptyState, NativeSelect, PageHeader, Pill, useAction, useHrUi } from "@/components/hr/ui";
 
@@ -19,7 +19,8 @@ const toLocalInput = (iso: string) => {
 const dayLabel = (iso: string) => new Date(iso + "T00:00:00").toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
 const timeLabel = (iso: string) => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 
-const InterviewsPage = () => {
+/** Step 4 (level "internal": our own screening) or Step 5 (level "client": client interview and any extra rounds). */
+const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
   const crm = useCrm();
   const ui = useHrUi();
   const run = useAction();
@@ -35,6 +36,7 @@ const InterviewsPage = () => {
   const list = useMemo(() => {
     const cutoff = new Date(Date.now() - 2 * 3600000).toISOString();
     return crm.interviews.filter((i) => {
+      if (levelOfKind(i.kind) !== level) return false;
       const app = crm.application.get(i.application_id);
       if (!app || (jobFilter && app.job_id !== jobFilter)) return false;
       if (view === "upcoming") return i.scheduled_at >= cutoff && i.status !== "Cancelled";
@@ -42,7 +44,7 @@ const InterviewsPage = () => {
       if (view === "past") return i.scheduled_at < cutoff;
       return true;
     }).sort((a, b) => (view === "upcoming" ? a.scheduled_at.localeCompare(b.scheduled_at) : b.scheduled_at.localeCompare(a.scheduled_at)));
-  }, [crm.interviews, crm.application, view, jobFilter]);
+  }, [crm.interviews, crm.application, view, jobFilter, level]);
 
   // A "session" = one vacancy on one day.
   const sessions = useMemo(() => {
@@ -57,8 +59,8 @@ const InterviewsPage = () => {
     return [...m.values()];
   }, [list, crm.application]);
 
-  const pendingCount = crm.interviews.filter((i) => i.scheduled_at < new Date(Date.now() - 2 * 3600000).toISOString() && i.result === "Pending" && i.status !== "Cancelled").length;
-  const jobsWithInterviews = [...new Set(crm.interviews.map((i) => crm.application.get(i.application_id)?.job_id).filter(Boolean) as string[])];
+  const pendingCount = crm.interviews.filter((i) => levelOfKind(i.kind) === level && i.scheduled_at < new Date(Date.now() - 2 * 3600000).toISOString() && i.result === "Pending" && i.status !== "Cancelled").length;
+  const jobsWithInterviews = [...new Set(crm.interviews.filter((i) => levelOfKind(i.kind) === level).map((i) => crm.application.get(i.application_id)?.job_id).filter(Boolean) as string[])];
   const selIds = [...selected].filter((id) => list.some((i) => i.id === id));
 
   const toggle = (id: string) => setSelected((p) => { const n = new Set(p); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -79,14 +81,21 @@ const InterviewsPage = () => {
     }, { refresh: ["crm_interviews"] });
   };
 
-  const offerDocuments = async (ids: string[]) => {
+  /** Passed internal → Step 5 (send profile to client). Passed client rounds → Step 6 (documents). */
+  const offerNextStep = async (ids: string[]) => {
+    const from = level === "internal" ? "Internal Interview" : "Client Interview";
+    const to = level === "internal" ? "CV Sent to Client" : "Documents";
     const apps = ids.map((id) => crm.interviews.find((i) => i.id === id)).map((i) => i && crm.application.get(i.application_id))
-      .filter((a): a is NonNullable<typeof a> => !!a && a.stage === "Interview / Trial");
-    if (!apps.length || !confirm(`${apps.length} candidate(s) passed. Move them to Document Verification now?`)) return;
+      .filter((x, k, arr): x is NonNullable<typeof x> => !!x && x.stage === from && arr.findIndex((y) => y?.id === x.id) === k);
+    if (!apps.length) return;
+    const question = level === "internal"
+      ? `${apps.length} candidate(s) passed the internal interview. Move them to Step 5 (client interview)?`
+      : `${apps.length} candidate(s) passed. Are ALL client rounds done for them? Click OK to move them to Document Verification, or Cancel if the client still has another round (schedule it from here).`;
+    if (!confirm(question)) return;
     await run(async () => {
-      for (const a of apps) await moveStage(a, "Documents", { job: crm.job.get(a.job_id), candidate: crm.candidate.get(a.candidate_id), applications: crm.applications, documents: crm.documents });
+      for (const x of apps) await moveStage(x, to, { job: crm.job.get(x.job_id), candidate: crm.candidate.get(x.candidate_id), applications: crm.applications, documents: crm.documents });
     }, { refresh: ["all"] });
-    toast({ title: `${apps.length} moved to Document Verification`, description: "Their document checklists were created." });
+    toast({ title: `${apps.length} moved to ${level === "internal" ? "Step 5 · client interview" : "Document Verification"}`, description: level === "client" ? "Their document checklists were created." : "Send their profiles to the client and schedule the client round." });
   };
 
   const setResult = async (ids: string[], result: string) => {
@@ -95,7 +104,7 @@ const InterviewsPage = () => {
       if (error) throw error;
       return true;
     }, { success: `${ids.length} marked ${result}`, refresh: ["crm_interviews"] });
-    if (ok && result === "Passed") await offerDocuments(ids);
+    if (ok && result === "Passed") await offerNextStep(ids);
   };
 
   const setStatus = (ids: string[], status: string) => run(async () => {
@@ -143,10 +152,13 @@ const InterviewsPage = () => {
 
   return (
     <div>
-      <PageHeader step={4} title="Interviews & Trials" subtitle="Schedule a whole batch for a vacancy in one go, then mark results and change individual timings here."
+      <PageHeader step={level === "internal" ? 4 : 5} title={level === "internal" ? "Internal Interview" : "Client Interview & Selection"}
+        subtitle={level === "internal"
+          ? "Your own screening interview. Schedule a whole batch in one go; candidates who pass move on to the client interview (Step 5)."
+          : "The client's final interview plus any trial, physical or extra round. Add as many rounds as the client wants; when all are passed, move the candidate to documents."}
         actions={<>
-          <Button onClick={() => ui.openBulkSchedule(jobFilter || undefined)}><Users className="w-4 h-4 mr-1" />Schedule many at once</Button>
-          <Button variant="outline" onClick={() => ui.openSchedule()}><CalendarPlus className="w-4 h-4 mr-1" />Schedule one</Button>
+          <Button onClick={() => ui.openBulkSchedule(jobFilter || undefined, level)}><Users className="w-4 h-4 mr-1" />{level === "client" ? "Schedule client round for many" : "Schedule many at once"}</Button>
+          <Button variant="outline" onClick={() => ui.openSchedule(undefined, level)}><CalendarPlus className="w-4 h-4 mr-1" />Schedule one</Button>
         </>} />
 
       <div className="flex flex-wrap items-center gap-3 mb-5">
@@ -186,8 +198,8 @@ const InterviewsPage = () => {
 
       {sessions.length === 0 ? (
         <EmptyState icon={Video} title={view === "pending" ? "All results recorded" : "No interviews here"}
-          text="Use “Schedule many at once” to set up interviews for everyone on a vacancy in one go."
-          action={<Button onClick={() => ui.openBulkSchedule(jobFilter || undefined)}>Schedule many at once</Button>} />
+          text={level === "internal" ? "Use “Schedule many at once” to set up internal interviews for everyone on a vacancy." : "Candidates who pass the internal interview appear in Step 5. Schedule their client interview, trial or extra rounds here."}
+          action={<Button onClick={() => ui.openBulkSchedule(jobFilter || undefined, level)}>Schedule many at once</Button>} />
       ) : (
         <div className="space-y-4">
           {sessions.map((s) => {

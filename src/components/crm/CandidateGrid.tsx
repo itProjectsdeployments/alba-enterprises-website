@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   CRM_SOURCES, DEPARTMENT_NAMES, FIELDS, OPEN_STATUSES, STATUS_VALUES, type Candidate, type CandidateInsert, type FieldDef,
-  cleanPhone, followUpState, statusTone, todayISO, toISODate, waLink,
+  cleanPhone, followUpState, normalizeCvLink, statusTone, todayISO, toISODate, waLink,
 } from "@/lib/crm";
 
 export interface GridFilters {
@@ -77,6 +77,7 @@ const EditableCell = ({ field, value, onCommit }: { field: FieldDef; value: stri
     setEditing(false);
     let v: string | null = draft.trim() || null;
     if (field.key === "phone" && v) v = cleanPhone(v);
+    if (field.key === "cv_url" && v) { const link = normalizeCvLink(v); if (!link) { alert("That doesn't look like a link. Please paste the full Drive link."); return; } v = link; }
     if (field.key === "full_name" && !v) return; // name can't be blank
     if ((v ?? null) !== (value ?? null)) onCommit(v);
   };
@@ -117,12 +118,15 @@ const EditableCell = ({ field, value, onCommit }: { field: FieldDef; value: stri
       />
     );
   }
-  if (field.kind === "url") {
-    return value ? (
-      <a href={value} target="_blank" rel="noopener noreferrer" className="text-primary text-sm inline-flex items-center gap-1 hover:underline">
-        Open <ExternalLink className="w-3 h-3" />
-      </a>
-    ) : <span className="text-muted-foreground text-sm">—</span>;
+  if (field.kind === "url" && !editing) {
+    const isLink = !!value && /^https?:\/\//i.test(value);
+    return (
+      <div className="flex items-center gap-1">
+        {isLink && <a href={value!} target="_blank" rel="noopener noreferrer" className="text-primary text-sm inline-flex items-center gap-1 hover:underline shrink-0">Open <ExternalLink className="w-3 h-3" /></a>}
+        {value && !isLink && <span className="text-xs text-muted-foreground shrink-0">Uploaded file</span>}
+        <button type="button" onClick={() => setEditing(true)} className="text-xs text-muted-foreground hover:text-primary px-1 rounded hover:bg-muted">{value ? "edit" : "+ add link"}</button>
+      </div>
+    );
   }
 
   if (editing) {

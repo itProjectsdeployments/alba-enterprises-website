@@ -48,8 +48,8 @@ export const HrShell = () => {
   const [candOpen, setCandOpen] = useState(false);
   const [task, setTask] = useState<{ open: boolean; preset?: { candidate_id?: string; job_id?: string; client_id?: string } }>({ open: false });
   const [addTo, setAddTo] = useState<{ open: boolean; jobId?: string; candidateIds?: string[] }>({ open: false });
-  const [schedule, setSchedule] = useState<{ open: boolean; applicationId?: string }>({ open: false });
-  const [bulkSchedule, setBulkSchedule] = useState<{ open: boolean; jobId?: string }>({ open: false });
+  const [schedule, setSchedule] = useState<{ open: boolean; applicationId?: string; level?: "internal" | "client" }>({ open: false });
+  const [bulkSchedule, setBulkSchedule] = useState<{ open: boolean; jobId?: string; level?: "internal" | "client" }>({ open: false });
   const [importOpen, setImportOpen] = useState(false);
 
   const ui: HrUi = useMemo(() => ({
@@ -60,8 +60,8 @@ export const HrShell = () => {
     openNewCandidate: () => setCandOpen(true),
     openNewTask: (preset) => setTask({ open: true, preset }),
     openAddToJob: (o) => setAddTo({ open: true, ...o }),
-    openSchedule: (applicationId) => setSchedule({ open: true, applicationId }),
-    openBulkSchedule: (jobId) => setBulkSchedule({ open: true, jobId }),
+    openSchedule: (applicationId, level) => setSchedule({ open: true, applicationId, level }),
+    openBulkSchedule: (jobId, level) => setBulkSchedule({ open: true, jobId, level }),
   }), []);
 
   const tablesMissing = crm.error && /crm_|schema cache|does not exist/i.test(crm.error.message);
@@ -80,7 +80,8 @@ export const HrShell = () => {
             <Route path="candidates" element={<Candidates onImport={() => setImportOpen(true)} />} />
             <Route path="candidates/:id" element={<CandidateProfile />} />
             <Route path="screening" element={<Screening />} />
-            <Route path="interviews" element={<InterviewsPage />} />
+            <Route path="interviews" element={<InterviewsPage level="internal" key="internal" />} />
+            <Route path="client-interviews" element={<InterviewsPage level="client" key="client" />} />
             <Route path="documents" element={<Documents />} />
             <Route path="offers" element={<Offers />} />
             <Route path="followups" element={<Followups />} />
@@ -105,9 +106,9 @@ export const HrShell = () => {
       <CandidateDialog open={candOpen} onOpenChange={setCandOpen} onSaved={(c) => navigate(`/hr/candidates/${c.id}`)} />
       <TaskDialog open={task.open} onOpenChange={(v) => setTask({ open: v })} initial={task.preset ?? null} />
       <AddToJobDialog open={addTo.open} onOpenChange={(v) => setAddTo({ open: v })} jobId={addTo.jobId} candidateIds={addTo.candidateIds} />
-      <BulkScheduleDialog open={bulkSchedule.open} onOpenChange={(v) => setBulkSchedule((b) => ({ ...b, open: v }))} jobId={bulkSchedule.jobId}
-        onScheduled={(jobId) => navigate(`/hr/interviews?job=${jobId}`)} />
-      <ScheduleDialog open={schedule.open} onOpenChange={(v) => setSchedule({ open: v })} applicationId={schedule.applicationId} />
+      <BulkScheduleDialog open={bulkSchedule.open} onOpenChange={(v) => setBulkSchedule((b) => ({ ...b, open: v }))} jobId={bulkSchedule.jobId} level={bulkSchedule.level ?? "internal"}
+        onScheduled={(jobId, level) => navigate(`/hr/${level === "client" ? "client-interviews" : "interviews"}?job=${jobId}`)} />
+      <ScheduleDialog open={schedule.open} onOpenChange={(v) => setSchedule({ open: v })} applicationId={schedule.applicationId} level={schedule.level} />
       <ImportDialog open={importOpen} onOpenChange={setImportOpen} existing={crm.candidates} onImported={() => refresh("crm_candidates")} />
     </HrUiContext.Provider>
   );

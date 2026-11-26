@@ -42,7 +42,7 @@ export const Screening = () => {
   const move = useMover();
   const [job, setJob] = useState("");
   const [stage, setStage] = useState("");
-  const STAGES3 = ["Sourced", "Screening", "Shortlisted", "CV Sent to Client"];
+  const STAGES3 = ["Sourced", "Screening", "Shortlisted"];
   const all = crm.applications.filter((a) => STAGES3.includes(a.stage));
   const rows = all.filter((a) => (!job || a.job_id === job) && (!stage || a.stage === stage))
     .sort((a, b) => STAGES3.indexOf(a.stage) - STAGES3.indexOf(b.stage) || (screeningScore(b) ?? 0) - (screeningScore(a) ?? 0));
@@ -52,7 +52,7 @@ export const Screening = () => {
 
   return (
     <div>
-      <PageHeader step={3} title="Screening & Shortlisting" subtitle="Rate skills, experience, communication and grooming. Shortlist the best and send profiles to the client in one click." />
+      <PageHeader step={3} title="Screening & Shortlisting" subtitle="Rate skills, experience, communication and grooming, then shortlist the best for your internal interview (Step 4)." />
       <div className="flex flex-wrap gap-2 mb-5">
         <JobFilter value={job} onChange={setJob} jobIds={all.map((a) => a.job_id)} />
         <div className="flex gap-1 flex-wrap">
@@ -88,8 +88,7 @@ export const Screening = () => {
                     <td className="px-3 py-2.5">
                       <div className="flex gap-1 justify-end">
                         {(a.stage === "Sourced" || a.stage === "Screening") && <Button size="sm" variant="outline" onClick={() => move(a, "Shortlisted")}><Check className="w-3.5 h-3.5 mr-1" />Shortlist</Button>}
-                        {a.stage === "Shortlisted" && <Button size="sm" variant="outline" onClick={() => ui.openApplication(a.id)}>Send to client</Button>}
-                        {a.stage === "CV Sent to Client" && <Button size="sm" variant="outline" onClick={() => ui.openSchedule(a.id)}><CalendarPlus className="w-3.5 h-3.5 mr-1" />Interview</Button>}
+                        {a.stage === "Shortlisted" && <Button size="sm" variant="outline" onClick={() => ui.openSchedule(a.id, "internal")}><CalendarPlus className="w-3.5 h-3.5 mr-1" />Internal interview</Button>}
                         <Button size="icon" variant="ghost" className="h-8 w-8 text-rose-700" title="Reject" onClick={() => move(a, "Rejected", { rejection_reason: "Not suitable at screening" })}><XCircle className="w-4 h-4" /></Button>
                       </div>
                     </td>
@@ -192,9 +191,9 @@ export const Documents = () => {
 
   return (
     <div>
-      <PageHeader step={5} title="Document Verification" subtitle="Check candidate documents, experience and references. Files are stored privately and visible only to staff." />
+      <PageHeader step={6} title="Document Verification" subtitle="Check candidate documents, experience and references. Files are stored privately and visible only to staff." />
       {apps.length === 0 ? (
-        <EmptyState icon={FileCheck2} title="No candidates at document stage" text="When a candidate passes the interview, move them to Documents and a checklist is created automatically." />
+        <EmptyState icon={FileCheck2} title="No candidates at document stage" text="When a candidate is selected in all client rounds (Step 5), move them to Documents and a checklist is created automatically." />
       ) : (
         <div className="grid md:grid-cols-2 2xl:grid-cols-3 gap-4">
           {apps.map((a) => {
@@ -244,7 +243,7 @@ export const Offers = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader step={6} title="Offer & Joining" subtitle="Coordinate offers, joining dates and candidate reporting. Marking someone as joined schedules their follow-ups automatically." />
+      <PageHeader step={7} title="Offer & Joining" subtitle="Coordinate offers, joining dates and candidate reporting. Marking someone as joined schedules their follow-ups automatically." />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={FileSignature} label="Offers in progress" value={offers.length} />
         <StatCard icon={FileSignature} label="Accepted, yet to join" value={offers.filter((a) => a.offer_status === "Accepted").length} tone="bg-lime-100 text-lime-700" />
@@ -314,7 +313,7 @@ export const Followups = () => {
 
   return (
     <div>
-      <PageHeader step={7} title="Follow-up & Support" subtitle="Continued support after joining to ensure client satisfaction. Day 1, 7, 30 and 90 check-ins are created automatically." />
+      <PageHeader step={8} title="Follow-up & Support" subtitle="Continued support after joining to ensure client satisfaction. Day 1, 7, 30 and 90 check-ins are created automatically." />
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <StatCard icon={HeartHandshake} label="Due or overdue" value={dueCount} tone="bg-rose-100 text-rose-700" />
         <StatCard icon={HeartHandshake} label="Upcoming" value={crm.followups.filter((f) => f.status === "Pending" && f.due_date > today).length} />

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Phone, MessageCircle, Mail, FileText, Upload, Pencil, Briefcase, ListTodo, Trash2, Loader2, Send, CalendarClock } from "lucide-react";
+import { ArrowLeft, Phone, MessageCircle, Mail, FileText, Upload, Pencil, Briefcase, ListTodo, Trash2, Loader2, Send, CalendarClock, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { formatDate, formatDateTime, statusTone, STATUS_VALUES, waLink } from "@/lib/crm";
+import { formatDate, formatDateTime, normalizeCvLink, statusTone, STATUS_VALUES, waLink } from "@/lib/crm";
 import {
   RESULT_TONE, deleteRow, logEvent, openCv, screeningScore, stageTone, updateRow, uploadPrivateCv, useActivities, useCrm, type Candidate,
 } from "@/lib/hr/model";
@@ -85,6 +85,13 @@ const CandidateProfile = () => {
               <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => uploadCv(e.target.files?.[0])} />
             </label>
           </Button>
+          <Button variant="outline" onClick={() => {
+            const v = prompt("Paste the CV link (Google Drive or any link):", c.cv_url && !c.cv_url.startsWith("crm-docs:") ? c.cv_url : "");
+            if (v === null) return;
+            const url = normalizeCvLink(v);
+            if (v.trim() && !url) { alert("That doesn't look like a link. Please paste the full Drive link."); return; }
+            upd({ cv_url: url }, url ? "CV link saved" : "CV link removed");
+          }}><Link2 className="w-4 h-4 mr-1" />{c.cv_url ? "Change CV link" : "Add CV link"}</Button>
           <Button onClick={() => ui.openAddToJob({ candidateIds: [c.id] })}><Briefcase className="w-4 h-4 mr-1" />Add to requirement</Button>
           <Button variant="ghost" size="icon" onClick={() => setEditOpen(true)} title="Edit"><Pencil className="w-4 h-4" /></Button>
           <Button variant="ghost" size="icon" onClick={() => ui.openNewTask({ candidate_id: c.id })} title="Add task"><ListTodo className="w-4 h-4" /></Button>

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  ClipboardList, Search, UserCheck, Video, FileCheck2, FileSignature, HeartHandshake, type LucideIcon,
+  ClipboardList, Search, UserCheck, Video, Handshake, FileCheck2, FileSignature, HeartHandshake, type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -28,7 +28,7 @@ export type CrmTable =
 const db = supabase as unknown as SupabaseClient<any>;
 
 // ---------------------------------------------------------------------------
-// The 7-step process
+// The 8-step process
 // ---------------------------------------------------------------------------
 
 export interface ProcessStep {
@@ -44,10 +44,11 @@ export const PROCESS_STEPS: ProcessStep[] = [
   { n: 1, title: "Requirement Analysis", short: "Requirements", description: "Understand the property, departments, positions and timelines.", icon: ClipboardList, path: "/hr/requirements" },
   { n: 2, title: "Candidate Sourcing", short: "Sourcing", description: "Find suitable candidates from the network and database.", icon: Search, path: "/hr/candidates" },
   { n: 3, title: "Screening & Shortlisting", short: "Screening", description: "Skill, experience, communication and grooming checks.", icon: UserCheck, path: "/hr/screening" },
-  { n: 4, title: "Interviews & Trials", short: "Interviews", description: "Client interviews plus cooking or service trials.", icon: Video, path: "/hr/interviews" },
-  { n: 5, title: "Document Verification", short: "Documents", description: "Check documents, experience and references.", icon: FileCheck2, path: "/hr/documents" },
-  { n: 6, title: "Offer & Joining", short: "Offers", description: "Coordinate offers, joining dates and reporting.", icon: FileSignature, path: "/hr/offers" },
-  { n: 7, title: "Follow-up & Support", short: "Follow-ups", description: "Support after joining to ensure client satisfaction.", icon: HeartHandshake, path: "/hr/followups" },
+  { n: 4, title: "Internal Interview", short: "Internal", description: "Our own screening interview before the client sees the candidate.", icon: Video, path: "/hr/interviews" },
+  { n: 5, title: "Client Interview & Selection", short: "Client", description: "Final client interview plus trials, physical or any extra rounds.", icon: Handshake, path: "/hr/client-interviews" },
+  { n: 6, title: "Document Verification", short: "Documents", description: "Check documents, experience and references.", icon: FileCheck2, path: "/hr/documents" },
+  { n: 7, title: "Offer & Joining", short: "Offers", description: "Coordinate offers, joining dates and reporting.", icon: FileSignature, path: "/hr/offers" },
+  { n: 8, title: "Follow-up & Support", short: "Follow-ups", description: "Support after joining to ensure client satisfaction.", icon: HeartHandshake, path: "/hr/followups" },
 ];
 
 /** Pipeline stages for a candidate on a requirement, mapped to the process step they belong to. */
@@ -55,11 +56,12 @@ export const STAGES = [
   { value: "Sourced", step: 2, tone: "bg-slate-100 text-slate-700 border-slate-200", dot: "bg-slate-400" },
   { value: "Screening", step: 3, tone: "bg-sky-100 text-sky-800 border-sky-200", dot: "bg-sky-500" },
   { value: "Shortlisted", step: 3, tone: "bg-indigo-100 text-indigo-800 border-indigo-200", dot: "bg-indigo-500" },
-  { value: "CV Sent to Client", step: 3, tone: "bg-violet-100 text-violet-800 border-violet-200", dot: "bg-violet-500" },
-  { value: "Interview / Trial", step: 4, tone: "bg-amber-100 text-amber-800 border-amber-200", dot: "bg-amber-500" },
-  { value: "Documents", step: 5, tone: "bg-cyan-100 text-cyan-800 border-cyan-200", dot: "bg-cyan-500" },
-  { value: "Offer", step: 6, tone: "bg-lime-100 text-lime-800 border-lime-200", dot: "bg-lime-500" },
-  { value: "Joined", step: 6, tone: "bg-emerald-100 text-emerald-800 border-emerald-200", dot: "bg-emerald-500" },
+  { value: "Internal Interview", step: 4, tone: "bg-amber-100 text-amber-800 border-amber-200", dot: "bg-amber-500" },
+  { value: "CV Sent to Client", step: 5, tone: "bg-violet-100 text-violet-800 border-violet-200", dot: "bg-violet-500" },
+  { value: "Client Interview", step: 5, tone: "bg-orange-100 text-orange-800 border-orange-200", dot: "bg-orange-500" },
+  { value: "Documents", step: 6, tone: "bg-cyan-100 text-cyan-800 border-cyan-200", dot: "bg-cyan-500" },
+  { value: "Offer", step: 7, tone: "bg-lime-100 text-lime-800 border-lime-200", dot: "bg-lime-500" },
+  { value: "Joined", step: 7, tone: "bg-emerald-100 text-emerald-800 border-emerald-200", dot: "bg-emerald-500" },
   { value: "Rejected", step: 0, tone: "bg-rose-100 text-rose-800 border-rose-200", dot: "bg-rose-500" },
   { value: "Dropped", step: 0, tone: "bg-zinc-100 text-zinc-600 border-zinc-200", dot: "bg-zinc-400" },
 ] as const;
@@ -74,7 +76,14 @@ export const PROPERTY_TYPES = ["Hotel", "Resort", "Boutique Hotel", "Service Apa
 export const JOB_STATUSES = ["Open", "On Hold", "Filled", "Closed"];
 export const PRIORITIES = ["Low", "Normal", "High", "Urgent"];
 export const LEVELS = ["Junior / Entry", "Supervisory", "Managerial", "Senior / HOD"];
-export const INTERVIEW_KINDS = ["Telephonic Screening", "HR Round", "Client Interview", "Cooking Trial", "Service Trial", "Final Round"];
+/** Step 4: our own rounds. Step 5: the client's rounds (several are allowed per candidate). */
+export const INTERNAL_KINDS = ["Internal Screening", "Telephonic Screening", "Video Call Screening", "HR Round"];
+export const CLIENT_KINDS = ["Client Interview", "Final Interview", "Cooking Trial", "Service Trial", "Physical / Trade Test", "Extra Round"];
+export const INTERVIEW_KINDS = [...INTERNAL_KINDS, ...CLIENT_KINDS];
+export type InterviewLevel = "internal" | "client";
+export const levelOfKind = (kind: string): InterviewLevel => (INTERNAL_KINDS.includes(kind) ? "internal" : "client");
+/** Pipeline stage a candidate moves to when an interview of this kind is scheduled. */
+export const stageForLevel = (level: InterviewLevel) => (level === "internal" ? "Internal Interview" : "Client Interview");
 export const INTERVIEW_MODES = ["In-person", "Online", "On-site", "Phone"];
 export const INTERVIEW_STATUSES = ["Scheduled", "Completed", "Rescheduled", "No-show", "Cancelled"];
 export const INTERVIEW_RESULTS = ["Pending", "Passed", "On Hold", "Failed"];

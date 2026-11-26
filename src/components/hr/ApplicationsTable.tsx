@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowDown, ArrowUp, CalendarPlus, ChevronLeft, ChevronRight, Columns3, Download, Maximize2, MessageCircle, MoreVertical, Phone, Plus, Search, Star, Trash2,
+  ArrowDown, ArrowUp, CalendarPlus, ChevronLeft, ChevronRight, Columns3, Download, FileText, Maximize2, MessageCircle, MoreVertical, Phone, Plus, Search, Star, Trash2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { CRM_SOURCES, cleanPhone, exportCandidates, formatDate, phoneKey, waLink } from "@/lib/crm";
+import { CRM_SOURCES, cleanPhone, exportCandidates, formatDate, normalizeCvLink, phoneKey, waLink } from "@/lib/crm";
 import {
-  STAGES, STAGE_VALUES, type Application, type Candidate, logEvent, moveStage, positionAnswerOf, screeningScore, stageTone, updateRow, useCrm,
+  STAGES, STAGE_VALUES, type Application, type Candidate, logEvent, moveStage, openCv, positionAnswerOf, screeningScore, stageTone, updateRow, useCrm,
 } from "@/lib/hr/model";
 import { useAction, useHrUi } from "./ui";
 
@@ -31,7 +31,7 @@ const STD_FIELDS = [
   { key: "email", label: "Email" }, { key: "city", label: "City" }, { key: "job_role", label: "Current role" },
   { key: "experience", label: "Experience" }, { key: "current_employer", label: "Current employer" },
   { key: "current_salary", label: "Current salary" }, { key: "expected_salary", label: "Expected salary" },
-  { key: "notice_period", label: "Notice period" }, { key: "notes", label: "Notes" },
+  { key: "notice_period", label: "Notice period" }, { key: "cv_url", label: "CV link" }, { key: "notes", label: "Notes" },
 ] as const;
 type StdKey = (typeof STD_FIELDS)[number]["key"];
 
@@ -153,6 +153,11 @@ const ApplicationsTable = ({ applications, showJob, jobId }: Props) => {
         : String(((a.custom as Record<string, unknown>) || {})[col.key] ?? "");
 
   const saveCell = (col: Col, a: Application, c: Candidate, v: string) => {
+    if (col.kind === "std" && col.key === "cv_url") {
+      const link = normalizeCvLink(v);
+      if (v && !link) { toast({ title: "That doesn't look like a link", description: "Paste the full Google Drive link.", variant: "destructive" }); return; }
+      return run(() => updateRow("crm_candidates", c.id, { cv_url: link }), { refresh: ["crm_candidates"] });
+    }
     if (col.kind === "std") return run(() => updateRow("crm_candidates", c.id, { [col.key]: v || null }), { refresh: ["crm_candidates"] });
     if (col.kind === "extra") return run(() => updateRow("crm_candidates", c.id, { extra: { ...extraOf(c), [col.key]: v } }), { refresh: ["crm_candidates"] });
     return run(() => updateRow("crm_applications", a.id, { custom: { ...((a.custom as Record<string, unknown>) || {}), [col.key]: v } }), { refresh: ["crm_applications"] });
@@ -399,7 +404,14 @@ const ApplicationsTable = ({ applications, showJob, jobId }: Props) => {
                     </td>
                     {showJob && <td className="px-3 py-1.5 max-w-[180px] truncate text-primary">{j?.title}</td>}
                     {cols.map((col) => (
-                      <td key={col.kind + col.key} className="px-2 py-1.5"><Cell value={valueOf(col, a, c!)} onSave={(v) => saveCell(col, a, c!, v)} /></td>
+                      <td key={col.kind + col.key} className="px-2 py-1.5">
+                        {col.kind === "std" && col.key === "cv_url" && c!.cv_url ? (
+                          <span className="inline-flex items-center gap-1">
+                            <button onClick={() => openCv(c!.cv_url!)} className="text-primary text-sm hover:underline inline-flex items-center gap-1 shrink-0"><FileText className="w-3.5 h-3.5" />Open</button>
+                            <span className="w-16"><Cell value={c!.cv_url.startsWith("crm-docs:") ? "" : c!.cv_url} onSave={(v) => saveCell(col, a, c!, v)} placeholder="edit" /></span>
+                          </span>
+                        ) : <Cell value={valueOf(col, a, c!)} onSave={(v) => saveCell(col, a, c!, v)} placeholder={col.kind === "std" && col.key === "cv_url" ? "+ link" : "—"} />}
+                      </td>
                     ))}
                     <td className="px-3 py-1.5 text-xs text-muted-foreground whitespace-nowrap">{c!.source}</td>
                     <td className="px-3 py-1.5 whitespace-nowrap">{score != null ? <span className="inline-flex items-center gap-1"><Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />{score.toFixed(1)}</span> : <span className="text-muted-foreground">—</span>}</td>
@@ -426,7 +438,7 @@ const ApplicationsTable = ({ applications, showJob, jobId }: Props) => {
         </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        Click any cell to edit it (saves automatically). Use the top row to add a candidate, and <strong>+ Column</strong> to add your own columns. Click a name to open the full 7-step panel.
+        Click any cell to edit it (saves automatically). Use the top row to add a candidate, and <strong>+ Column</strong> to add your own columns. Click a name to open the full 8-step panel.
       </p>
     </div>
   );

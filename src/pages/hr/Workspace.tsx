@@ -252,7 +252,7 @@ export const Reports = () => {
     const joined = crm.applications.filter((a) => a.stage === "Joined" && (!since || (a.joined_on || a.updated_at) >= since.slice(0, 10)));
     const reached = (stage: string) => {
       const idx = STAGES.findIndex((s) => s.value === stage);
-      return apps.filter((a) => { const i = STAGES.findIndex((s) => s.value === a.stage); return i >= idx && i <= 7; }).length;
+      return apps.filter((a) => { const i = STAGES.findIndex((s) => s.value === a.stage); return i >= idx && i <= STAGES.findIndex((s) => s.value === "Joined"); }).length;
     };
     const days = joined.map((a) => (new Date(a.joined_on || a.updated_at).getTime() - new Date(a.created_at).getTime()) / 86400000).filter((d) => d >= 0);
     const byClient = new Map<string, number>();
@@ -267,7 +267,7 @@ export const Reports = () => {
     const sort = (m: Map<string, number>) => [...m.entries()].sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label, value }));
     return {
       apps: apps.length, joined: joined.length, avgDays: days.length ? Math.round(days.reduce((s, d) => s + d, 0) / days.length) : null,
-      funnel: ["Sourced", "Screening", "Shortlisted", "CV Sent to Client", "Interview / Trial", "Documents", "Offer", "Joined"].map((s) => ({ label: s, value: reached(s), tone: STAGES.find((x) => x.value === s)?.dot })),
+      funnel: ["Sourced", "Screening", "Shortlisted", "Internal Interview", "CV Sent to Client", "Client Interview", "Documents", "Offer", "Joined"].map((s) => ({ label: s, value: reached(s), tone: STAGES.find((x) => x.value === s)?.dot })),
       byClient: sort(byClient), byDept: sort(byDept), srcJoined: sort(srcJoined), reasons: sort(reasons).slice(0, 8),
       sources: CRM_SOURCES.map((s) => ({ label: s, value: candidatesNew.filter((c) => c.source === s).length })).filter((x) => x.value).sort((a, b) => b.value - a.value),
       newCandidates: candidatesNew.length,

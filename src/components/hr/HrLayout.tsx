@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { todayISO } from "@/lib/crm";
-import { ACTIVE_STAGES, PROCESS_STEPS, useCrm } from "@/lib/hr/model";
+import { ACTIVE_STAGES, PROCESS_STEPS, levelOfKind, useCrm } from "@/lib/hr/model";
 import { useHrUi } from "./ui";
 import albaLogo from "@/assets/alba-logo.png";
 
@@ -63,10 +63,11 @@ const HrLayout = ({ children, onImport }: Props) => {
       1: crm.jobs.filter((j) => j.status === "Open").length,
       2: crm.candidates.filter((c) => c.status === "New").length,
       3: stageCount(["Sourced", "Screening", "Shortlisted"]),
-      4: crm.interviews.filter((i) => i.status === "Scheduled" && i.scheduled_at.slice(0, 10) >= today).length,
-      5: stageCount(["Documents"]),
-      6: stageCount(["Offer"]),
-      7: crm.followups.filter((f) => f.status === "Pending" && f.due_date <= today).length,
+      4: crm.interviews.filter((i) => i.status === "Scheduled" && i.scheduled_at.slice(0, 10) >= today && levelOfKind(i.kind) === "internal").length,
+      5: stageCount(["CV Sent to Client", "Client Interview"]),
+      6: stageCount(["Documents"]),
+      7: stageCount(["Offer"]),
+      8: crm.followups.filter((f) => f.status === "Pending" && f.due_date <= today).length,
       tasks: crm.tasks.filter((t) => !t.done && t.due_date && t.due_date <= today).length,
       pipeline: stageCount(ACTIVE_STAGES),
     } as Record<string | number, number>;
@@ -181,7 +182,8 @@ const HrLayout = ({ children, onImport }: Props) => {
                   <DropdownMenuItem onClick={() => ui.openBulkJobs()}><Briefcase className="w-4 h-4 mr-2" />Multiple positions (paste)</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => ui.openNewCandidate()}><UserPlus className="w-4 h-4 mr-2" />Candidate</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => ui.openNewClient()}><Building2 className="w-4 h-4 mr-2" />Client</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => ui.openSchedule()}><CalendarPlus className="w-4 h-4 mr-2" />Interview / trial</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => ui.openSchedule(undefined, "internal")}><CalendarPlus className="w-4 h-4 mr-2" />Internal interview</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => ui.openSchedule(undefined, "client")}><CalendarPlus className="w-4 h-4 mr-2" />Client round</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => ui.openBulkSchedule()}><CalendarPlus className="w-4 h-4 mr-2" />Interviews for many (batch)</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => ui.openNewTask()}><ListTodo className="w-4 h-4 mr-2" />Task</DropdownMenuItem>
                   <DropdownMenuSeparator />

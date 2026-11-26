@@ -8,9 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { DEPARTMENTS } from "@/lib/site";
-import { CRM_SOURCES, DEPARTMENT_NAMES, cleanPhone, phoneKey, todayISO } from "@/lib/crm";
+import { CRM_SOURCES, DEPARTMENT_NAMES, cleanPhone, normalizeCvLink, phoneKey, todayISO } from "@/lib/crm";
 import {
-  CLIENT_STATUSES, INTERVIEW_KINDS, INTERVIEW_MODES, JOB_STATUSES, LEVELS, PRIORITIES, PROPERTY_TYPES,
+  CLIENT_KINDS, CLIENT_STATUSES, INTERNAL_KINDS, INTERVIEW_KINDS, INTERVIEW_MODES, levelOfKind, stageForLevel, JOB_STATUSES, LEVELS, PRIORITIES, PROPERTY_TYPES,
   type Application, type Candidate, type Client, type Job, type Task,
   addCandidatesToJob, insertRow, logEvent, moveStage, stageIndex, updateRow, useCrm,
 } from "@/lib/hr/model";
@@ -178,6 +178,7 @@ export const CandidateDialog = ({ open, onOpenChange, initial, onSaved }: Base<C
       full_name: f.full_name, phone: f.phone ? cleanPhone(f.phone) : null, email: f.email, city: f.city, job_role: f.job_role,
       department: f.department, experience: f.experience, current_employer: f.current_employer, current_salary: f.current_salary,
       expected_salary: f.expected_salary, notice_period: f.notice_period, source: f.source || "Other", status: f.status || "New", notes: f.notes,
+      ...(f.cv_url !== undefined ? { cv_url: f.cv_url?.startsWith("crm-docs:") ? f.cv_url : normalizeCvLink(f.cv_url) } : {}),
     });
     const row = await run(async () => {
       if (initial?.id) return updateRow<Candidate>("crm_candidates", initial.id, data);
@@ -211,6 +212,11 @@ export const CandidateDialog = ({ open, onOpenChange, initial, onSaved }: Base<C
           <F label="Current salary"><Input value={f.current_salary ?? ""} onChange={(e) => set("current_salary", e.target.value)} /></F>
           <F label="Expected salary"><Input value={f.expected_salary ?? ""} onChange={(e) => set("expected_salary", e.target.value)} /></F>
           <F label="Source"><NativeSelect value={f.source} onChange={(v) => set("source", v)} options={CRM_SOURCES} /></F>
+          <F label="CV link (Google Drive or any link)" className="sm:col-span-3">
+            <Input value={f.cv_url?.startsWith("crm-docs:") ? "" : (f.cv_url ?? "")} onChange={(e) => set("cv_url", e.target.value)}
+              placeholder={f.cv_url?.startsWith("crm-docs:") ? "A CV file is uploaded. Paste a link here to replace it." : "https://drive.google.com/file/d/…"} />
+            {f.cv_url && !f.cv_url.startsWith("crm-docs:") && !normalizeCvLink(f.cv_url) && <p className="text-xs text-rose-700 mt-1">This doesn't look like a link. Paste the full Drive link.</p>}
+          </F>
           <F label="Notes" className="sm:col-span-3"><Textarea rows={3} value={f.notes ?? ""} onChange={(e) => set("notes", e.target.value)} /></F>
         </div>
         <DialogFooter><Button onClick={save} disabled={busy || !f.full_name?.trim()}>{busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Save candidate</Button></DialogFooter>
@@ -369,7 +375,7 @@ const localNowPlus = (h: number) => {
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 };
 
-export const ScheduleDialog = ({ open, onOpenChange, applicationId }: { open: boolean; onOpenChange: (v: boolean) => void; applicationId?: string }) => {
+export const ScheduleDialog = ({ open, onOpenChange, applicationId, level }: { open: boolean; onOpenChange: (v: boolean) => void; applicationId?: string; level?: "internal" | "client" }) => {
   const run = useAction();
   const { applications, documents, candidate: candMap, job: jobMap, client: clientMap } = useCrm();
   const [appId, setAppId] = useState("");
@@ -379,14 +385,14 @@ export const ScheduleDialog = ({ open, onOpenChange, applicationId }: { open: bo
   useEffect(() => {
     if (!open) return;
     setAppId(applicationId ?? "");
-    setF({ kind: "Client Interview", mode: "In-person", when: localNowPlus(24), location: "", interviewer: "", feedback: "" });
+    setF({ kind: level === "client" ? "Client Interview" : "Internal Screening", mode: level === "client" ? "In-person" : "Phone", when: localNowPlus(24), location: "", interviewer: "", feedback: "" });
   }, [open, applicationId]);
 
   useEffect(() => {
     const a = applications.find((x) => x.id === appId);
     const j = a ? jobMap.get(a.job_id) : undefined;
     const c = j?.client_id ? clientMap.get(j.client_id) : undefined;
-    if (c && !f.location) setF((p) => ({ ...p, location: [c.name, c.address || c.city].filter(Boolean).join(", "), interviewer: c.contact_person || p.interviewer }));
+    if (c && !f.location && levelOfKind(f.kind) === "client") setF((p) => ({ ...p, location: [c.name, c.address || c.city].filter(Boolean).join(", "), interviewer: c.contact_person || p.interviewer }));
   }, [appId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const label = (a: Application) => `${candMap.get(a.candidate_id)?.full_name ?? "?"} → ${jobMap.get(a.job_id)?.title ?? "?"}`;
@@ -399,8 +405,9 @@ export const ScheduleDialog = ({ open, onOpenChange, applicationId }: { open: bo
     const ok = await run(async () => {
       await insertRow("crm_interviews", { application_id: app.id, kind: f.kind, mode: f.mode, scheduled_at: new Date(f.when).toISOString(), location: f.location || null, interviewer: f.interviewer || null, feedback: f.feedback || null });
       await logEvent({ candidate_id: app.candidate_id, job_id: app.job_id, application_id: app.id, kind: "interview", content: `${f.kind} scheduled (${f.mode}) for ${new Date(f.when).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}` });
-      if (stageIndex(app.stage) < stageIndex("Interview / Trial")) {
-        await moveStage(app, "Interview / Trial", { job: jobMap.get(app.job_id), candidate: candMap.get(app.candidate_id), applications, documents });
+      const target = stageForLevel(levelOfKind(f.kind));
+      if (stageIndex(app.stage) < stageIndex(target)) {
+        await moveStage(app, target, { job: jobMap.get(app.job_id), candidate: candMap.get(app.candidate_id), applications, documents });
       }
       return true;
     }, { success: "Interview scheduled", refresh: ["crm_interviews", "crm_applications", "crm_candidates"] });
@@ -411,12 +418,12 @@ export const ScheduleDialog = ({ open, onOpenChange, applicationId }: { open: bo
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
-        <DialogHeader><DialogTitle>Schedule interview / trial</DialogTitle><DialogDescription>Step 4: client interviews plus cooking or service trials.</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>{level === "internal" ? "Schedule internal interview" : level === "client" ? "Schedule client round" : "Schedule interview"}</DialogTitle><DialogDescription>{level === "client" ? "Step 5: client interview, trial, physical or any extra round." : level === "internal" ? "Step 4: your own screening interview." : "Internal interviews are Step 4; client rounds are Step 5."}</DialogDescription></DialogHeader>
         <div className="grid sm:grid-cols-2 gap-4">
           <F label="Candidate → requirement *" className="sm:col-span-2">
             <NativeSelect value={appId} onChange={setAppId} placeholder="Select" options={eligible.map((a) => ({ value: a.id, label: label(a) }))} />
           </F>
-          <F label="Type"><NativeSelect value={f.kind} onChange={(v) => setF({ ...f, kind: v })} options={INTERVIEW_KINDS} /></F>
+          <F label="Type"><NativeSelect value={f.kind} onChange={(v) => setF({ ...f, kind: v })} options={level === "internal" ? INTERNAL_KINDS : level === "client" ? CLIENT_KINDS : INTERVIEW_KINDS} /></F>
           <F label="Mode"><NativeSelect value={f.mode} onChange={(v) => setF({ ...f, mode: v })} options={INTERVIEW_MODES} /></F>
           <F label="Date & time *"><Input type="datetime-local" value={f.when} onChange={(e) => setF({ ...f, when: e.target.value })} /></F>
           <F label="Interviewer"><Input value={f.interviewer} onChange={(e) => setF({ ...f, interviewer: e.target.value })} placeholder="e.g. Executive Chef" /></F>

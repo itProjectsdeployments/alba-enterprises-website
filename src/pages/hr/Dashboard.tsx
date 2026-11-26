@@ -51,11 +51,12 @@ const Dashboard = () => {
       steps: {
         1: openJobs.length,
         2: crm.candidates.length,
-        3: stageCount(["Sourced", "Screening", "Shortlisted", "CV Sent to Client"]),
-        4: stageCount(["Interview / Trial"]),
-        5: stageCount(["Documents"]),
-        6: stageCount(["Offer"]),
-        7: crm.followups.filter((f) => f.status === "Pending").length,
+        3: stageCount(["Sourced", "Screening", "Shortlisted"]),
+        4: stageCount(["Internal Interview"]),
+        5: stageCount(["CV Sent to Client", "Client Interview"]),
+        6: stageCount(["Documents"]),
+        7: stageCount(["Offer"]),
+        8: crm.followups.filter((f) => f.status === "Pending").length,
       } as Record<number, number>,
     };
   }, [crm.jobs, crm.applications, crm.candidates, crm.interviews, crm.followups, crm.tasks, today]);
@@ -85,7 +86,7 @@ const Dashboard = () => {
       </div>
 
       {/* Process strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
         {PROCESS_STEPS.map((s) => (
           <Link key={s.n} to={s.path} className="group rounded-xl border bg-card p-4 hover:border-primary/50 hover:shadow-md transition">
             <div className="flex items-center justify-between">
@@ -207,7 +208,7 @@ const Dashboard = () => {
           <ol className="grid md:grid-cols-3 gap-4 text-sm">
             <li className="rounded-lg bg-muted/50 p-4"><p className="font-semibold mb-1">1. Add your clients</p><p className="text-muted-foreground">Hotels and properties you recruit for, with contact details and terms.</p></li>
             <li className="rounded-lg bg-muted/50 p-4"><p className="font-semibold mb-1">2. Import your candidates</p><p className="text-muted-foreground">Upload your Excel sheet of WhatsApp and email leads from the + New menu.</p></li>
-            <li className="rounded-lg bg-muted/50 p-4"><p className="font-semibold mb-1">3. Create requirements</p><p className="text-muted-foreground">Then add matching candidates and move them through the 7 steps.</p></li>
+            <li className="rounded-lg bg-muted/50 p-4"><p className="font-semibold mb-1">3. Create requirements</p><p className="text-muted-foreground">Then add matching candidates and move them through the 8 steps.</p></li>
           </ol>
         </Card>
       )}
