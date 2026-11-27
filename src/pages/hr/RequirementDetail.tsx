@@ -26,7 +26,7 @@ export const jobPostText = (j: Job) => [
 ].filter((l): l is string => typeof l === "string").join("\n");
 
 const Info = ({ label, value }: { label: string; value?: string | number | null }) =>
-  value ? <div><p className="text-xs text-muted-foreground">{label}</p><p className="text-sm font-medium">{value}</p></div> : null;
+  value ? <div className="min-w-0"><p className="text-xs text-muted-foreground">{label}</p><p className="text-sm font-medium break-words">{value}</p></div> : null;
 
 const RequirementDetail = () => {
   const { id } = useParams();
@@ -156,7 +156,7 @@ const RequirementDetail = () => {
             <Info label="Benefits" value={job.benefits} />
             <Info label="Target joining" value={job.target_date ? formatDate(job.target_date) : null} />
             <Info label="Created" value={formatDate(job.created_at)} />
-            <Info label="Google Form (auto-import)" value={job.intake_key} />
+            <Info label="Google Form (auto-import)" value={job.intake_key ? (/^https?:\/\//i.test(job.intake_key) ? "Linked spreadsheet ✓" : job.intake_key) : null} />
           </div>
           {job.skills && <div className="mt-4"><p className="text-xs text-muted-foreground">Key skills / must-haves</p><p className="text-sm">{job.skills}</p></div>}
           {job.description && <div className="mt-4"><p className="text-xs text-muted-foreground">Description & client notes</p><p className="text-sm whitespace-pre-wrap">{job.description}</p></div>}
