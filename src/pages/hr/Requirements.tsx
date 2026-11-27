@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Briefcase, Plus, Search, MapPin, CalendarDays, Globe, Building2, ClipboardList, LayoutGrid, Rows3, ChevronRight, Pencil } from "lucide-react";
+import { ArrowLeft, Briefcase, Plus, Search, MapPin, CalendarDays, Globe, Building2, ClipboardList, LayoutGrid, Rows3, ChevronRight, Pencil, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDate, todayISO } from "@/lib/crm";
-import { ACTIVE_STAGES, JOB_STATUSES, JOB_STATUS_TONE, PRIORITIES, PRIORITY_TONE, STAGES, useCrm, type Application, type Job } from "@/lib/hr/model";
-import { EmptyState, NativeSelect, PageHeader, Pill, useHrUi } from "@/components/hr/ui";
+import { ACTIVE_STAGES, JOB_STATUSES, JOB_STATUS_TONE, PRIORITIES, PRIORITY_TONE, STAGES, logEvent, updateRow, useCrm, type Application, type Job } from "@/lib/hr/model";
+import { EmptyState, NativeSelect, PageHeader, Pill, useAction, useHrUi } from "@/components/hr/ui";
 import { ClientDialog } from "@/components/hr/dialogs";
 
 type Row = { j: Job; apps: Application[]; joined: number; active: number };
@@ -35,7 +35,8 @@ const useRows = (jobs: Job[]) => {
   }), [jobs, crm.applications]);
 };
 
-const branchOf = (j: Job) => j.location?.trim() || "No branch set";
+const NO_BRANCH = "No branch set";
+const branchOf = (j: Job) => j.location?.trim() || NO_BRANCH;
 
 // ---------------------------------------------------------------------------
 // Level 1: clients only
@@ -141,6 +142,9 @@ export const ClientRequirements = () => {
   const [priority, setPriority] = useState("");
   const [view, setView] = useState<"branches" | "grid">(() => readLs<string>(VIEW_KEY, "branches") === "grid" ? "grid" : "branches");
   const [editOpen, setEditOpen] = useState(false);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overBranch, setOverBranch] = useState<string | null>(null);
+  const run = useAction();
 
   const jobs = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -151,6 +155,35 @@ export const ClientRequirements = () => {
   }, [crm.jobs, crm.client, clientId, isNone, q, status, priority]);
   const rows = useRows(jobs);
   const allForClient = crm.jobs.filter((j) => (isNone ? !j.client_id : j.client_id === clientId));
+
+  /** Put a vacancy in another branch (its location). */
+  const moveToBranch = (jobId: string, branch: string) => {
+    const j = crm.job.get(jobId);
+    const location = branch === NO_BRANCH ? null : branch;
+    if (!j || (j.location?.trim() || null) === location) return;
+    return run(async () => {
+      await updateRow("crm_jobs", j.id, { location });
+      await logEvent({ job_id: j.id, client_id: j.client_id, kind: "note", content: `Moved to branch "${location ?? NO_BRANCH}"` });
+    }, { success: `${j.title} moved to ${location ?? NO_BRANCH}`, refresh: ["crm_jobs"] });
+  };
+  const newBranch = (jobId: string) => {
+    const name = prompt("New branch / location name (e.g. Folks Faridabad):")?.trim();
+    if (name) moveToBranch(jobId, name);
+  };
+  /** Rename a branch: every vacancy of this client in it moves along. Renaming to an existing branch merges them. */
+  const renameBranch = (branch: string) => {
+    const name = prompt(`Rename branch "${branch}" to (type an existing branch name to merge them):`, branch === NO_BRANCH ? "" : branch)?.trim();
+    if (!name || name === branch) return;
+    const ids = allForClient.filter((j) => branchOf(j) === branch).map((j) => j.id);
+    return run(async () => {
+      for (const id of ids) await updateRow("crm_jobs", id, { location: name });
+    }, { success: `Branch renamed to ${name}`, refresh: ["crm_jobs"] });
+  };
+  const dropProps = (branch: string) => ({
+    onDragOver: (e: React.DragEvent) => { if (dragId) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (overBranch !== branch) setOverBranch(branch); } },
+    onDragLeave: (e: React.DragEvent) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOverBranch((b) => (b === branch ? null : b)); },
+    onDrop: (e: React.DragEvent) => { e.preventDefault(); const id = e.dataTransfer.getData("text/x-job") || dragId; setOverBranch(null); setDragId(null); if (id) moveToBranch(id, branch); },
+  });
 
   const branches = useMemo(() => {
     const m = new Map<string, Row[]>();
@@ -209,19 +242,27 @@ export const ClientRequirements = () => {
           text="Paste the client's WhatsApp message with 'Add multiple positions' to create all positions and branches at once."
           action={<Button onClick={() => ui.openBulkJobs(client?.id)}>Add positions</Button>} />
       ) : view === "branches" ? (
+        <>
+        <p className="text-xs text-muted-foreground mb-2">Drag a vacancy by its <GripVertical className="inline w-3 h-3" /> handle into another branch, or use "Move to branch…". Click the pencil on a branch to rename it or merge it into another.</p>
         <div className="rounded-xl border bg-card overflow-hidden divide-y">
           {branches.map(([branch, list]) => (
-            <div key={branch}>
+            <div key={branch} {...dropProps(branch)} className={`transition-colors ${overBranch === branch ? "bg-primary/10 ring-2 ring-inset ring-primary" : ""}`}>
               <div className="flex items-center gap-2 px-5 py-2.5 bg-muted/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <MapPin className="w-3.5 h-3.5" />{branch}
                 <span className="font-normal normal-case tracking-normal">· {list.length} position{list.length === 1 ? "" : "s"}</span>
+                <button onClick={() => renameBranch(branch)} className="ml-1 rounded p-1 hover:bg-muted hover:text-foreground" title="Rename or merge this branch" aria-label={`Rename branch ${branch}`}><Pencil className="w-3 h-3" /></button>
+                {overBranch === branch && <span className="ml-auto normal-case tracking-normal text-primary">Drop to move here</span>}
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[720px]">
+                <table className="w-full text-sm min-w-[860px] table-fixed">
                   <tbody>
                     {list.map(({ j, apps, joined, active }) => (
-                      <tr key={j.id} onClick={() => navigate(`/hr/requirements/${j.id}`)} className="border-t first:border-t-0 hover:bg-muted/30 cursor-pointer">
-                        <td className="px-5 py-3 w-[34%]">
+                      <tr key={j.id} onClick={() => navigate(`/hr/requirements/${j.id}`)}
+                        draggable onDragStart={(e) => { e.dataTransfer.setData("text/x-job", j.id); e.dataTransfer.effectAllowed = "move"; setDragId(j.id); }}
+                        onDragEnd={() => { setDragId(null); setOverBranch(null); }}
+                        className={`border-t first:border-t-0 hover:bg-muted/30 cursor-pointer ${dragId === j.id ? "opacity-40" : ""}`}>
+                        <td className="pl-3 pr-0 py-3 w-8 text-muted-foreground/60 cursor-grab active:cursor-grabbing" title="Drag to another branch" onClick={(e) => e.stopPropagation()}><GripVertical className="w-4 h-4" /></td>
+                        <td className="px-3 py-3">
                           <Link to={`/hr/requirements/${j.id}`} onClick={(e) => e.stopPropagation()} className="font-medium hover:text-primary">{j.title}</Link>
                           <div className="text-xs text-muted-foreground">{[j.department, j.salary_range ? `₹ ${j.salary_range}` : null].filter(Boolean).join(" · ")}</div>
                         </td>
@@ -229,16 +270,24 @@ export const ClientRequirements = () => {
                           <div className="flex justify-between text-xs mb-1"><span>{joined}/{j.openings} filled</span><span className="text-muted-foreground">{active} in process</span></div>
                           <Funnel apps={apps} openings={j.openings} />
                         </td>
-                        <td className="px-3 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                        <td className="w-24 px-3 py-3 text-xs text-muted-foreground whitespace-nowrap">
                           {j.target_date ? <span className={`inline-flex items-center gap-1 ${j.target_date < today && j.status === "Open" ? "text-rose-700 font-medium" : ""}`}><CalendarDays className="w-3 h-3" />{formatDate(j.target_date)}</span> : "—"}
                         </td>
-                        <td className="px-3 py-3 whitespace-nowrap">
+                        <td className="w-28 px-3 py-3 whitespace-nowrap">
                           <span className="inline-flex gap-2 text-xs">
                             {j.intake_key && <span className="inline-flex items-center gap-1 text-emerald-700" title="Google Form linked"><ClipboardList className="w-3.5 h-3.5" />Form</span>}
                             {j.public_job_id && <span className="inline-flex items-center gap-1 text-primary" title="Published on website"><Globe className="w-3.5 h-3.5" />Website</span>}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-right whitespace-nowrap">
+                        <td className="w-44 px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                          <select value="" onChange={(e) => { const v = e.target.value; e.target.value = ""; if (v === "__new") newBranch(j.id); else if (v) moveToBranch(j.id, v); }}
+                            className="h-8 max-w-[150px] rounded-md border bg-background px-2 text-xs text-muted-foreground" title="Move to another branch" aria-label={`Move ${j.title} to another branch`}>
+                            <option value="">Move to branch…</option>
+                            {branches.map(([b]) => b).filter((b) => b !== branch).map((b) => <option key={b} value={b}>{b}</option>)}
+                            <option value="__new">+ New branch…</option>
+                          </select>
+                        </td>
+                        <td className="w-32 px-5 py-3 text-right whitespace-nowrap">
                           {j.priority !== "Normal" && <Pill tone={PRIORITY_TONE[j.priority] ?? ""}>{j.priority}</Pill>}{" "}
                           <Pill tone={JOB_STATUS_TONE[j.status] ?? ""}>{j.status}</Pill>
                         </td>
@@ -250,6 +299,14 @@ export const ClientRequirements = () => {
             </div>
           ))}
         </div>
+        {dragId && (
+          <div onDragOver={(e) => { e.preventDefault(); setOverBranch("__new"); }} onDragLeave={() => setOverBranch(null)}
+            onDrop={(e) => { e.preventDefault(); const id = e.dataTransfer.getData("text/x-job") || dragId; setDragId(null); setOverBranch(null); if (id) newBranch(id); }}
+            className={`mt-3 rounded-xl border-2 border-dashed p-5 text-center text-sm ${overBranch === "__new" ? "border-primary bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+            <Plus className="inline w-4 h-4 mr-1" />Drop here to create a new branch
+          </div>
+        )}
+        </>
       ) : (
         <div className="grid md:grid-cols-2 2xl:grid-cols-3 gap-4">
           {rows.map(({ j, apps, joined, active }) => (
