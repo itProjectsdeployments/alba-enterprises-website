@@ -94,7 +94,11 @@ const RequirementDetail = () => {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/hr/requirements" className="text-sm text-muted-foreground hover:text-primary inline-flex items-center gap-1 mb-3"><ArrowLeft className="w-4 h-4" />Requirements</Link>
+        <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-1 mb-3">
+          <Link to="/hr/requirements" className="hover:text-primary inline-flex items-center gap-1"><ArrowLeft className="w-4 h-4" />Requirements</Link>
+          {client && <><span>›</span><Link to={`/hr/clients/${client.id}`} className="hover:text-primary">{client.name}</Link></>}
+          {job.location && <><span>›</span><span>{job.location}</span></>}
+        </div>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-1">
