@@ -143,6 +143,14 @@ export const RequirementFormCard = ({ job }: { job: Job }) => {
             </p>
           )}
           <p className="text-xs text-muted-foreground">{routed} applicant(s) for this vacancy{shared.length ? ` (out of ${total} form responses)` : ""}.</p>
+          <div className="rounded-md border p-3 space-y-2">
+            <p className="text-xs font-medium">Wrong form? Use this vacancy's own spreadsheet instead:</p>
+            <div className="flex gap-2">
+              <Input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Paste response spreadsheet link" className="h-9" />
+              <Button size="sm" disabled={!value || looksLikeForm || value === linked} onClick={async () => { await link(value, job.id); setManual(""); }}>Switch</Button>
+            </div>
+            {looksLikeForm && <p className="text-xs text-rose-700">That is the form link. Please paste the <strong>response spreadsheet</strong> link (Responses → View in Sheets).</p>}
+          </div>
           <Button size="sm" variant="outline" onClick={() => link(linked, null, job.id)}><Unlink className="w-4 h-4 mr-1" />Unlink</Button>
         </div>
       ) : (
