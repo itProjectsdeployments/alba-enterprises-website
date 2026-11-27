@@ -13,11 +13,28 @@ export interface GridFilters {
   search: string;
   status: string;
   source: string;
-  department: string;
+  /** Applied position (role), matched case-insensitively. */
+  position: string;
   followUp: string;
 }
 
-export const EMPTY_FILTERS: GridFilters = { search: "", status: "active", source: "all", department: "all", followUp: "all" };
+export const EMPTY_FILTERS: GridFilters = { search: "", status: "active", source: "all", position: "all", followUp: "all" };
+
+/** "Head Chef ", "head chef" and "HEAD  CHEF" are the same position. */
+export const positionKey = (s?: string | null) => (s || "").toLowerCase().replace(/\s+/g, " ").trim();
+const titleCase = (s: string) => s.replace(/\s+/g, " ").trim().replace(/(^|\s)([a-z])/g, (m) => m.toUpperCase());
+
+/** Every position in the database, with how many candidates applied for it. */
+export const positionOptions = (rows: Candidate[]) => {
+  const m = new Map<string, { label: string; n: number }>();
+  rows.forEach((c) => {
+    const k = positionKey(c.job_role);
+    if (!k) return;
+    const cur = m.get(k);
+    if (cur) cur.n++; else m.set(k, { label: titleCase(c.job_role!), n: 1 });
+  });
+  return [...m.entries()].map(([value, v]) => ({ value, ...v })).sort((a, b) => a.label.localeCompare(b.label));
+};
 
 interface Props {
   candidates: Candidate[];
@@ -45,7 +62,7 @@ export const applyFilters = (rows: Candidate[], f: GridFilters) => {
     if (f.status === "active" && !OPEN_STATUSES.includes(c.status)) return false;
     if (f.status !== "active" && f.status !== "all" && c.status !== f.status) return false;
     if (f.source !== "all" && c.source !== f.source) return false;
-    if (f.department !== "all" && (c.department || "") !== f.department) return false;
+    if (f.position && f.position !== "all" && positionKey(c.job_role) !== f.position) return false;
     if (f.followUp !== "all") {
       const st = followUpState(c);
       if (f.followUp === "overdue" && st !== "overdue") return false;
@@ -170,6 +187,7 @@ const CandidateGrid = ({
   const setF = (patch: Partial<GridFilters>) => { onFiltersChange({ ...filters, ...patch }); setPage(0); };
 
   const filtered = useMemo(() => applyFilters(candidates, filters), [candidates, filters]);
+  const positions = useMemo(() => positionOptions(candidates), [candidates]);
 
   const sorted = useMemo(() => {
     const dir = sort.dir === "asc" ? 1 : -1;
@@ -242,11 +260,11 @@ const CandidateGrid = ({
               {CRM_SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={filters.department} onValueChange={(v) => setF({ department: v })}>
-            <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All departments</SelectItem>
-              {DEPARTMENT_NAMES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+          <Select value={filters.position || "all"} onValueChange={(v) => setF({ position: v })}>
+            <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+            <SelectContent className="max-h-80">
+              <SelectItem value="all">All positions</SelectItem>
+              {positions.map((p) => <SelectItem key={p.value} value={p.value}>{p.label} ({p.n})</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filters.followUp} onValueChange={(v) => setF({ followUp: v })}>

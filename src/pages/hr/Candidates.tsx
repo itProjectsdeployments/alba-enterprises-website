@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { FileSpreadsheet, Download, Globe, Loader2, UserPlus, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { exportCandidates, type CandidateInsert } from "@/lib/crm";
+import { type CandidateInsert } from "@/lib/crm";
+import ExportDialog, { type ExportRow } from "@/components/hr/ExportDialog";
 import { type Candidate, deleteRow, insertRow, logEvent, updateRow, useCrm } from "@/lib/hr/model";
 import { syncWebsiteLeads } from "@/lib/hr/websiteSync";
 import CandidateGrid, { EMPTY_FILTERS, type GridFilters } from "@/components/crm/CandidateGrid";
@@ -17,6 +18,7 @@ const Candidates = ({ onImport }: { onImport: () => void }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [filters, setFilters] = useState<GridFilters>({ ...EMPTY_FILTERS, status: "all" });
+  const [exportRows, setExportRows] = useState<ExportRow[] | null>(null);
   const [syncing, setSyncing] = useState(false);
   const filteredRef = useRef<Candidate[]>([]);
 
@@ -77,12 +79,15 @@ const Candidates = ({ onImport }: { onImport: () => void }) => {
           <>
             <Button variant="outline" onClick={onImport}><FileSpreadsheet className="w-4 h-4 mr-2" />Import Excel / CSV</Button>
             <Button variant="outline" onClick={sync} disabled={syncing}>{syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Globe className="w-4 h-4 mr-2" />}Sync website leads</Button>
-            <Button variant="outline" onClick={() => filteredRef.current.length ? exportCandidates(filteredRef.current, `Alba_candidates_${new Date().toISOString().slice(0, 10)}.xlsx`) : toast({ title: "Nothing to export" })}>
+            <Button variant="outline" onClick={() => filteredRef.current.length ? setExportRows(filteredRef.current.map((c) => ({ c }))) : toast({ title: "Nothing to export" })}>
               <Download className="w-4 h-4 mr-2" />Export
             </Button>
           </>
         }
       />
+      <ExportDialog open={!!exportRows} onOpenChange={(v) => !v && setExportRows(null)} rows={exportRows ?? []}
+        title={filters.position && filters.position !== "all" ? `candidates: ${filters.position}` : "candidates"}
+        filename={`Alba_candidates_${filters.position && filters.position !== "all" ? filters.position.replace(/[^a-z0-9]+/gi, "_") + "_" : ""}${new Date().toISOString().slice(0, 10)}.xlsx`} />
       {crm.candidates.length === 0 && !crm.loading && (
         <p className="text-sm text-muted-foreground mt-4">Tip: use <strong>Import Excel / CSV</strong> to bring in your existing sheet, or <strong>Sync website leads</strong> to pull in everyone who applied on the website.</p>
       )}

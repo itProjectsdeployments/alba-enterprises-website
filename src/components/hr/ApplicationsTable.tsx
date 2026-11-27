@@ -10,7 +10,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { CRM_SOURCES, cleanPhone, exportCandidates, formatDate, normalizeCvLink, phoneKey, waLink } from "@/lib/crm";
+import ExportDialog from "./ExportDialog";
+import { CRM_SOURCES, cleanPhone, formatDate, normalizeCvLink, phoneKey, waLink } from "@/lib/crm";
 import {
   STAGES, STAGE_VALUES, type Application, type Candidate, logEvent, moveStage, openCv, positionAnswerOf, screeningScore, stageTone, updateRow, useCrm,
 } from "@/lib/hr/model";
@@ -77,6 +78,7 @@ const ApplicationsTable = ({ applications, showJob, jobId }: Props) => {
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "added", dir: -1 });
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [exportOpen, setExportOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [busy, setBusy] = useState(false);
   const [newCol, setNewCol] = useState<string | null>(null);
@@ -251,11 +253,8 @@ const ApplicationsTable = ({ applications, showJob, jobId }: Props) => {
     await run(async () => { const { error } = await supabase.from("crm_applications").delete().in("id", selIds); if (error) throw error; }, { success: `${selIds.length} removed from vacancy`, refresh: ["crm_applications"] });
     setSelected(new Set());
   };
-  const exportRows = () => {
-    const list = (selIds.length ? rows.filter((r) => selIds.includes(r.a.id)) : rows).map((r) => r.c!);
-    if (!list.length) return;
-    exportCandidates(list, `${(job?.title ?? "pipeline").replace(/[^a-zA-Z0-9]+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-  };
+  const exportList = (selIds.length ? rows.filter((r) => selIds.includes(r.a.id)) : rows).map((r) => ({ c: r.c!, a: r.a, jobTitle: r.j?.title }));
+  const exportRows = () => { if (exportList.length) setExportOpen(true); };
 
   const Th = ({ k, children, className = "" }: { k?: SortKey; children: React.ReactNode; className?: string }) => (
     <th className={`px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap ${className}`}>
@@ -441,6 +440,8 @@ const ApplicationsTable = ({ applications, showJob, jobId }: Props) => {
       <p className="text-xs text-muted-foreground">
         Click any cell to edit it (saves automatically). Use the top row to add a candidate, and <strong>+ Column</strong> to add your own columns. Click a name to open the full 8-step panel.
       </p>
+      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} rows={exportList} title={job ? `${job.title}${selIds.length ? " (selected)" : ""}` : "pipeline"}
+        filename={`${(job?.title ?? "pipeline").replace(/[^a-zA-Z0-9]+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`} />
     </div>
   );
 };
