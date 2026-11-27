@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { clientRequirementsPath } from "./Requirements";
 import { ArrowLeft, Pencil, UserPlus, Globe, Share2, Trash2, Building2, Phone, CalendarPlus, ListTodo } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -88,7 +89,7 @@ const RequirementDetail = () => {
   const remove = async () => {
     if (!confirm(`Delete "${job.title}" and its ${apps.length} pipeline record(s)? Candidates stay in your database.`)) return;
     const ok = await run(() => deleteRow("crm_jobs", job.id), { success: "Requirement deleted", refresh: ["all"] });
-    if (ok !== undefined) navigate("/hr/requirements");
+    if (ok !== undefined) navigate(clientRequirementsPath(job.client_id));
   };
 
   return (
@@ -96,7 +97,7 @@ const RequirementDetail = () => {
       <div>
         <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-1 mb-3">
           <Link to="/hr/requirements" className="hover:text-primary inline-flex items-center gap-1"><ArrowLeft className="w-4 h-4" />Requirements</Link>
-          {client && <><span>›</span><Link to={`/hr/clients/${client.id}`} className="hover:text-primary">{client.name}</Link></>}
+          {client && <><span>›</span><Link to={clientRequirementsPath(client.id)} className="hover:text-primary">{client.name}</Link></>}
           {job.location && <><span>›</span><span>{job.location}</span></>}
         </div>
         <div className="flex flex-wrap items-start justify-between gap-4">

@@ -13,7 +13,7 @@ import { AddToJobDialog, CandidateDialog, ClientDialog, JobDialog, ScheduleDialo
 import ImportDialog from "@/components/crm/ImportDialog";
 import BulkJobsDialog from "@/components/hr/BulkJobsDialog";
 import Dashboard from "./Dashboard";
-import Requirements from "./Requirements";
+import Requirements, { ClientRequirements } from "./Requirements";
 import RequirementDetail from "./RequirementDetail";
 import Candidates from "./Candidates";
 import CandidateProfile from "./CandidateProfile";
@@ -79,6 +79,7 @@ export const HrShell = () => {
           <Routes>
             <Route index element={<Dashboard />} />
             <Route path="requirements" element={<Requirements />} />
+            <Route path="requirements/client/:clientId" element={<ClientRequirements />} />
             <Route path="requirements/:id" element={<RequirementDetail />} />
             <Route path="candidates" element={<Candidates onImport={() => setImportOpen(true)} />} />
             <Route path="candidates/:id" element={<CandidateProfile />} />
