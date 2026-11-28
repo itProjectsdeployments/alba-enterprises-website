@@ -162,7 +162,11 @@ Deno.serve(async (req) => {
       .sort((a, b) => b.score - a.score);
     // All requirements linked to this form. One form can serve several positions: then each
     // applicant goes to the requirement matching the position they chose in the form.
-    const linkedJobs = ranked.filter((x) => x.score === ranked[0]?.score).map((x) => x.j);
+    // Linking by spreadsheet link and by exact form name are equally valid: one vacancy may be linked one
+    // way and its sister vacancy the other, and they must still share the form. Loose name matches (score 1)
+    // only count when nothing links properly.
+    const strong = ranked.filter((x) => x.score >= 5);
+    const linkedJobs = (strong.length ? strong : ranked).map((x) => x.j);
     const pickJob = (answer: string) => {
       if (linkedJobs.length <= 1) return linkedJobs[0] ?? null;
       const best = linkedJobs.map((j) => ({ j, s: positionScore(answer, j.title) })).sort((a, b) => b.s - a.s)[0];
