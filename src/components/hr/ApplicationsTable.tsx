@@ -26,7 +26,21 @@ interface Props {
 }
 
 const PAGE = 50;
-type SortKey = "name" | "stage" | "added" | "score" | "interview";
+/** Built-in sorts, or `col:<kind>:<key>` for any spreadsheet column. */
+type SortKey = "name" | "stage" | "added" | "score" | "interview" | `col:${string}`;
+
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+/** Reads typed times like "1.15pm- 30th Nov" or "10:30 am" so a time column sorts in real time order. */
+const timeKey = (s: string): number | null => {
+  const t = s.toLowerCase();
+  const tm = t.match(/(\d{1,2})(?:[.:](\d{2}))?\s*(am|pm)/);
+  const dm = t.match(/(\d{1,2})(?:st|nd|rd|th)?\s*[-/ ]?\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/);
+  if (!tm && !dm) return null;
+  let mins = 0;
+  if (tm) { const h = Number(tm[1]) % 12 + (tm[3] === "pm" ? 12 : 0); mins = h * 60 + Number(tm[2] || 0); }
+  const day = dm ? MONTHS.indexOf(dm[2]) * 31 + Number(dm[1]) : 0;
+  return day * 1440 + mins;
+};
 
 const STD_FIELDS = [
   { key: "email", label: "Email" }, { key: "city", label: "City" }, { key: "job_role", label: "Current role" },
@@ -76,7 +90,17 @@ const ApplicationsTable = ({ applications, showJob, jobId }: Props) => {
   const { toast } = useToast();
   const [stage, setStage] = useState("active");
   const [q, setQ] = useState("");
-  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "added", dir: -1 });
+  // The chosen order is remembered per vacancy in this browser.
+  const sortStore = `hr.tableSort:${jobId ?? "all"}`;
+  const [sort, setSortRaw] = useState<{ key: SortKey; dir: 1 | -1 }>(() => {
+    try { const v = JSON.parse(localStorage.getItem(sortStore) || "null"); if (v && typeof v.key === "string" && (v.dir === 1 || v.dir === -1)) return v; } catch { /* default */ }
+    return { key: "added", dir: -1 };
+  });
+  const setSort = (fn: (s: { key: SortKey; dir: 1 | -1 }) => { key: SortKey; dir: 1 | -1 }) => setSortRaw((s) => {
+    const next = fn(s);
+    try { localStorage.setItem(sortStore, JSON.stringify(next)); } catch { /* per-browser convenience only */ }
+    return next;
+  });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [exportOpen, setExportOpen] = useState(false);
   const [page, setPage] = useState(0);
@@ -115,6 +139,11 @@ const ApplicationsTable = ({ applications, showJob, jobId }: Props) => {
     return [...std, ...extra, ...custom];
   }, [all, jobCols]);
 
+  const valueOf = (col: Col, a: Application, c: Candidate) =>
+    col.kind === "std" ? String((c as Record<string, unknown>)[col.key] ?? "")
+      : col.kind === "extra" ? String(extraOf(c)[col.key] ?? "")
+        : String(((a.custom as Record<string, unknown>) || {})[col.key] ?? "");
+
   const rows = useMemo(() => {
     const term = q.trim().toLowerCase();
     const digits = term.replace(/\D/g, "");
@@ -124,7 +153,16 @@ const ApplicationsTable = ({ applications, showJob, jobId }: Props) => {
         ...Object.values(extraOf(c)).map(String), ...Object.values((a.custom as Record<string, unknown>) || {}).map(String)].filter(Boolean).join(" ").toLowerCase();
       return hay.includes(term) || (digits.length >= 3 && (c!.phone || "").replace(/\D/g, "").includes(digits));
     });
+    const sortCol = sort.key.startsWith("col:") ? cols.find((c) => `col:${c.kind}:${c.key}` === sort.key) : undefined;
+    // Column sort: real time order when the column holds times/dates, otherwise A–Z (numbers aware). Empty cells last.
+    const colTimes = sortCol ? list.map((r) => timeKey(valueOf(sortCol, r.a, r.c!))) : [];
+    const useTime = colTimes.some((t) => t !== null);
+    const idx = new Map(list.map((r, i) => [r.a.id, i]));
     const val = (r: (typeof list)[number]): string | number => {
+      if (sortCol) {
+        if (useTime) return colTimes[idx.get(r.a.id)!] ?? Number.MAX_SAFE_INTEGER;
+        return valueOf(sortCol, r.a, r.c!).trim().toLowerCase() || "￿";
+      }
       switch (sort.key) {
         case "name": return r.c!.full_name.toLowerCase();
         case "stage": return STAGE_VALUES.indexOf(r.a.stage);
@@ -133,8 +171,11 @@ const ApplicationsTable = ({ applications, showJob, jobId }: Props) => {
         default: return r.a.created_at;
       }
     };
-    return list.sort((x, y) => (val(x) > val(y) ? 1 : val(x) < val(y) ? -1 : 0) * sort.dir);
-  }, [all, stage, q, sort, nextInterview]); // eslint-disable-line react-hooks/exhaustive-deps
+    const cmp = (x: string | number, y: string | number) =>
+      typeof x === "string" && typeof y === "string" ? x.localeCompare(y, undefined, { numeric: true }) : x > y ? 1 : x < y ? -1 : 0;
+    // Tie-breaker keeps rows in a fixed order, so saving a cell never shuffles them.
+    return list.sort((x, y) => cmp(val(x), val(y)) * sort.dir || x.a.created_at.localeCompare(y.a.created_at) || x.a.id.localeCompare(y.a.id));
+  }, [all, stage, q, sort, nextInterview, cols]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   const cur = Math.min(page, pages - 1);
@@ -148,11 +189,7 @@ const ApplicationsTable = ({ applications, showJob, jobId }: Props) => {
   const clickSort = (key: SortKey) => setSort((s) => (s.key === key ? { key, dir: (s.dir * -1) as 1 | -1 } : { key, dir: key === "added" ? -1 : 1 }));
   const ctx = (a: Application) => ({ job: crm.job.get(a.job_id), candidate: crm.candidate.get(a.candidate_id), applications: crm.applications, documents: crm.documents });
 
-  /* ----- cell values & saving ----- */
-  const valueOf = (col: Col, a: Application, c: Candidate) =>
-    col.kind === "std" ? String((c as Record<string, unknown>)[col.key] ?? "")
-      : col.kind === "extra" ? String(extraOf(c)[col.key] ?? "")
-        : String(((a.custom as Record<string, unknown>) || {})[col.key] ?? "");
+  /* ----- cell saving ----- */
 
   const saveCell = (col: Col, a: Application, c: Candidate, v: string) => {
     if (col.kind === "std" && col.key === "cv_url") {
@@ -336,7 +373,10 @@ const ApplicationsTable = ({ applications, showJob, jobId }: Props) => {
                 {cols.map((col) => (
                   <th key={col.kind + col.key} className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground whitespace-nowrap">
                     <span className="inline-flex items-center gap-1">
-                      {col.label}
+                      <button className="inline-flex items-center gap-1 uppercase hover:text-foreground" onClick={() => clickSort(`col:${col.kind}:${col.key}`)} title="Click to sort">
+                        {col.label}
+                        {sort.key === `col:${col.kind}:${col.key}` && (sort.dir === 1 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />)}
+                      </button>
                       {job && (col.kind === "custom" || (col.kind === "std" && col.pinned)) && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><button className="rounded p-0.5 hover:bg-background" aria-label={`Column options for ${col.label}`}><MoreVertical className="w-3 h-3" /></button></DropdownMenuTrigger>

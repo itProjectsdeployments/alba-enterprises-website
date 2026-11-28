@@ -145,7 +145,7 @@ const fetchAll = async <T,>(table: CrmTable, order = "created_at", ascending = f
   const out: T[] = [];
   const page = 1000;
   for (let from = 0; ; from += page) {
-    const { data, error } = await db.from(table).select("*").order(order, { ascending }).range(from, from + page - 1);
+    const { data, error } = await db.from(table).select("*").order(order, { ascending }).order("id", { ascending: true }).range(from, from + page - 1);
     if (error) throw error;
     out.push(...((data as T[]) || []));
     if (!data || data.length < page) break;
