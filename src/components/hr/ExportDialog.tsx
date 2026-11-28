@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { downloadStyledWorkbook, type XGroup } from "@/lib/hr/styledExcel";
 import { Download, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,13 +10,15 @@ import { formatDate, formatDateTime } from "@/lib/crm";
 import type { Application, Candidate } from "@/lib/hr/model";
 import { useOpenReset } from "./dialogs";
 
-export type ExportRow = { c: Candidate; a?: Application; jobTitle?: string };
+export type ExportRow = { c: Candidate; a?: Application; jobTitle?: string; branch?: string; interviewAt?: string };
 
 type Col = { id: string; label: string; get: (r: ExportRow) => string; group: "Candidate" | "Form answers" | "Your columns" };
 
 const STD: Col[] = [
   { id: "full_name", label: "Name", get: (r) => r.c.full_name },
   { id: "position", label: "Applied for", get: (r) => r.jobTitle || r.c.job_role || "" },
+  { id: "branch", label: "Branch", get: (r) => r.branch || "" },
+  { id: "client_interview", label: "Client interview on", get: (r) => (r.interviewAt ? formatDateTime(r.interviewAt) : "") },
   { id: "job_role", label: "Current role", get: (r) => r.c.job_role || "" },
   { id: "experience", label: "Experience", get: (r) => r.c.experience || "" },
   { id: "current_employer", label: "Current hotel / employer", get: (r) => r.c.current_employer || "" },
@@ -42,11 +45,19 @@ const STORE = "hr.exportCols";
 
 const CV_DAYS = 30;
 
-const ExportDialog = ({ open, onOpenChange, rows, title, filename }: {
+const ExportDialog = ({ open, onOpenChange, rows, title, filename, heading, groupByVacancy, toolbar, preset = CLIENT_PRESET, storeKey = STORE }: {
   open: boolean; onOpenChange: (v: boolean) => void; rows: ExportRow[]; title: string; filename: string;
+  /** Title band of the Excel; defaults to "Candidate list". */
+  heading?: { title: string; subtitle: string };
+  /** One section per vacancy plus a summary sheet. */
+  groupByVacancy?: boolean;
+  /** Extra controls shown above the column picker (e.g. which vacancies / rounds). */
+  toolbar?: ReactNode;
+  preset?: string[];
+  storeKey?: string;
 }) => {
   const { toast } = useToast();
-  const [picked, setPicked] = useState<string[]>(CLIENT_PRESET);
+  const [picked, setPicked] = useState<string[]>(preset);
   const [busy, setBusy] = useState(false);
 
   // Every column that has data in these rows: standard fields, the form's own questions, HR's own columns.
@@ -69,8 +80,8 @@ const ExportDialog = ({ open, onOpenChange, rows, title, filename }: {
 
   useOpenReset(open, () => {
     let saved: string[] | null = null;
-    try { saved = JSON.parse(localStorage.getItem(STORE) || "null"); } catch { saved = null; }
-    setPicked(Array.isArray(saved) && saved.length ? saved : CLIENT_PRESET);
+    try { saved = JSON.parse(localStorage.getItem(storeKey) || "null"); } catch { saved = null; }
+    setPicked(Array.isArray(saved) && saved.length ? saved : preset);
   });
 
   const available = new Set(cols.map((c) => c.id));
@@ -82,7 +93,7 @@ const ExportDialog = ({ open, onOpenChange, rows, title, filename }: {
     if (!use.length || !rows.length) return;
     setBusy(true);
     try {
-      try { localStorage.setItem(STORE, JSON.stringify(chosen)); } catch { /* per-browser convenience only */ }
+      try { localStorage.setItem(storeKey, JSON.stringify(chosen)); } catch { /* per-browser convenience only */ }
       // CVs uploaded into the CRM are private: give the client a link that works for 30 days.
       const cvLink = new Map<string, string>();
       if (use.some((c) => c.id === "cv_url")) {
@@ -94,21 +105,41 @@ const ExportDialog = ({ open, onOpenChange, rows, title, filename }: {
           } else if (/^https?:\/\//i.test(v)) cvLink.set(r.c.id, v);
         }
       }
-      const XLSX = await import("xlsx");
-      const aoa = [use.map((c) => c.label), ...rows.map((r) => use.map((c) => (c.id === "cv_url" ? (cvLink.has(r.c.id) ? "View CV" : "") : c.get(r))))];
-      const ws = XLSX.utils.aoa_to_sheet(aoa);
       const cvCol = use.findIndex((c) => c.id === "cv_url");
-      if (cvCol >= 0) {
-        rows.forEach((r, i) => {
+      // Inside a vacancy section the position and branch are already in the section title.
+      const cols = groupByVacancy ? use.filter((c) => c.id !== "position" && c.id !== "branch") : use;
+      const xcols = [{ label: "S.No.", kind: "index" as const }, ...cols.map((c) => ({ label: c.label, kind: c.id === "cv_url" ? ("link" as const) : ("text" as const) }))];
+      const toRow = (r: ExportRow) => {
+        const links: Record<number, string> = {};
+        const values = ["", ...cols.map((c, j) => {
+          if (c.id !== "cv_url") return c.get(r);
           const url = cvLink.get(r.c.id);
-          const cell = ws[XLSX.utils.encode_cell({ r: i + 1, c: cvCol })];
-          if (url && cell) cell.l = { Target: url, Tooltip: "Open CV" };
+          if (url) links[j + 1] = url;
+          return "";
+        })];
+        return { values, links };
+      };
+      let groups: XGroup[] = [{ title: title, rows: rows.map(toRow) }];
+      let summary: { cols: string[]; rows: (string | number)[][] } | undefined;
+      if (groupByVacancy) {
+        const m = new Map<string, { title: string; branch: string; list: ExportRow[] }>();
+        rows.forEach((r) => {
+          const key = `${r.branch ?? ""}|${r.jobTitle ?? ""}`;
+          const g = m.get(key) ?? { title: r.jobTitle || "Other", branch: r.branch || "", list: [] };
+          g.list.push(r);
+          m.set(key, g);
         });
+        const sorted = [...m.values()].sort((a, b) => a.branch.localeCompare(b.branch) || a.title.localeCompare(b.title));
+        groups = sorted.map((g) => ({ title: g.title, note: g.branch || undefined, rows: g.list.map(toRow) }));
+        summary = { cols: ["Position", "Branch", "Candidates"], rows: sorted.map((g) => [g.title, g.branch || "—", g.list.length]) };
       }
-      ws["!cols"] = use.map((c) => ({ wch: c.id === "cv_url" ? 10 : Math.min(40, Math.max(12, c.label.length + 2, ...rows.slice(0, 50).map((r) => c.get(r).length + 1))) }));
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Candidates");
-      XLSX.writeFile(wb, filename);
+      await downloadStyledWorkbook({
+        filename,
+        title: heading?.title ?? "Candidate List",
+        subtitle: heading?.subtitle ?? `${title} · ${rows.length} candidate${rows.length === 1 ? "" : "s"}`,
+        sheets: [{ name: "Candidates", cols: xcols, groups }],
+        summary,
+      });
       toast({ title: `Exported ${rows.length} candidate(s)`, description: cvCol >= 0 ? "CV cells are clickable links. Drive CVs must be shared as 'Anyone with the link'." : undefined });
       onOpenChange(false);
     } catch (e) {
@@ -127,8 +158,9 @@ const ExportDialog = ({ open, onOpenChange, rows, title, filename }: {
           <DialogTitle>Export {title}</DialogTitle>
           <DialogDescription>{rows.length} candidate(s). Choose the columns to include; they appear in the order you tick them.</DialogDescription>
         </DialogHeader>
+        {toolbar}
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={() => setPicked(CLIENT_PRESET)}>For client (no phone/email)</Button>
+          <Button size="sm" variant="outline" onClick={() => setPicked(preset)}>For client (no phone/email)</Button>
           <Button size="sm" variant="outline" onClick={() => setPicked(cols.map((c) => c.id))}>Everything</Button>
           <Button size="sm" variant="ghost" onClick={() => setPicked([])}>Clear</Button>
         </div>

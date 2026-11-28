@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Briefcase, Plus, Search, MapPin, CalendarDays, Globe, Building2, ClipboardList, LayoutGrid, Rows3, ChevronRight, Pencil, GripVertical } from "lucide-react";
+import { ArrowLeft, Briefcase, Plus, Search, MapPin, CalendarDays, Globe, Building2, ClipboardList, LayoutGrid, Rows3, ChevronRight, Pencil, GripVertical, Download } from "lucide-react";
+import ClientExportDialog from "@/components/hr/ClientExportDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatDate, todayISO } from "@/lib/crm";
@@ -142,6 +143,7 @@ export const ClientRequirements = () => {
   const [priority, setPriority] = useState("");
   const [view, setView] = useState<"branches" | "grid">(() => readLs<string>(VIEW_KEY, "branches") === "grid" ? "grid" : "branches");
   const [editOpen, setEditOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overBranch, setOverBranch] = useState<string | null>(null);
   const run = useAction();
@@ -210,6 +212,7 @@ export const ClientRequirements = () => {
         actions={<>
           {client && <Button variant="ghost" onClick={() => setEditOpen(true)}><Pencil className="w-4 h-4 mr-1" />Edit client</Button>}
           {client && <Button variant="ghost" asChild><Link to={`/hr/clients/${client.id}`}>Client profile</Link></Button>}
+          <Button variant="outline" onClick={() => setExportOpen(true)}><Download className="w-4 h-4 mr-1" />Export for client</Button>
           <Button variant="outline" onClick={() => ui.openBulkJobs(client?.id)}><Plus className="w-4 h-4 mr-1" />Add multiple positions</Button>
           <Button onClick={() => ui.openNewJob(client?.id)}><Plus className="w-4 h-4 mr-1" />New vacancy</Button>
         </>}
@@ -336,6 +339,7 @@ export const ClientRequirements = () => {
       )}
 
       {client && <ClientDialog open={editOpen} onOpenChange={setEditOpen} initial={client} />}
+      <ClientExportDialog open={exportOpen} onOpenChange={setExportOpen} clientId={client?.id ?? null} clientName={client?.name ?? "Unassigned vacancies"} />
     </div>
   );
 };

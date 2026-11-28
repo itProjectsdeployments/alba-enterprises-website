@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Building2, Plus, Phone, MessageCircle, Mail, ArrowLeft, Pencil, Trash2, ListTodo, Check, BarChart3, Search } from "lucide-react";
+import { Building2, Plus, Phone, MessageCircle, Mail, ArrowLeft, Pencil, Trash2, ListTodo, Check, BarChart3, Search, Download } from "lucide-react";
+import ClientExportDialog from "@/components/hr/ClientExportDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -97,6 +98,7 @@ export const ClientDetail = () => {
   const ui = useHrUi();
   const run = useAction();
   const [edit, setEdit] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const activities = useActivities({ client_id: id });
   const c = crm.client.get(id || "");
   if (!c) return crm.loading ? null : <p className="text-muted-foreground">Client not found. <Link to="/hr/clients" className="text-primary">Back</Link></p>;
@@ -118,6 +120,7 @@ export const ClientDetail = () => {
           <p className="text-muted-foreground">{[c.property_type, c.city, c.status].filter(Boolean).join(" · ")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setExportOpen(true)}><Download className="w-4 h-4 mr-1" />Export for client</Button>
           <Button onClick={() => ui.openBulkJobs(c.id)}><Plus className="w-4 h-4 mr-1" />Add multiple positions</Button>
           <Button variant="outline" onClick={() => ui.openNewJob(c.id)}><Plus className="w-4 h-4 mr-1" />New requirement</Button>
           <Button variant="outline" onClick={() => setEdit(true)}><Pencil className="w-4 h-4 mr-1" />Edit</Button>
@@ -172,6 +175,7 @@ export const ClientDetail = () => {
         </div>
       </div>
       <ClientDialog open={edit} onOpenChange={setEdit} initial={c as Client} />
+      <ClientExportDialog open={exportOpen} onOpenChange={setExportOpen} clientId={c.id} clientName={c.name} />
     </div>
   );
 };
