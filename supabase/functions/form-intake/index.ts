@@ -62,7 +62,7 @@ const tokens = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(
   .filter((w) => w && !STOP.has(w)).map((w) => (w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w))
   .map((w) => (w === "commi" || w === "commie" ? "commis" : w));
 export const positionScore = (answer: string, title: string) => {
-  const strip = (s: string) => s.replace(/([^)]*)/g, " ");
+  const strip = (s: string) => s.replace(/\([^)]*\)/g, " ");
   const a = squash(strip(answer)) || squash(answer), t = squash(strip(title)) || squash(title);
   if (!a || !t) return 0;
   if (a === t || squash(answer) === squash(title)) return 100;

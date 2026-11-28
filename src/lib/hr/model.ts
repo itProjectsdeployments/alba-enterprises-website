@@ -342,7 +342,7 @@ const tokens = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(
 
 /** How well a form answer like "Commis 1" matches a requirement title like "Commie 1 - continental" (0 = no match). */
 export const positionScore = (answer: string, title: string) => {
-  const strip = (s: string) => s.replace(/([^)]*)/g, " ");
+  const strip = (s: string) => s.replace(/\([^)]*\)/g, " ");
   const a = squashKey(strip(answer)) || squashKey(answer), t = squashKey(strip(title)) || squashKey(title);
   if (!a || !t) return 0;
   if (a === t || squashKey(answer) === squashKey(title)) return 100;
