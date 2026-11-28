@@ -7,15 +7,26 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, formatDateTime } from "@/lib/crm";
-import type { Application, Candidate } from "@/lib/hr/model";
+import type { Application, Candidate, Interview } from "@/lib/hr/model";
 import { useOpenReset } from "./dialogs";
 
-export type ExportRow = { c: Candidate; a?: Application; jobTitle?: string; branch?: string; interviewAt?: string };
+export type ExportRow = { c: Candidate; a?: Application; jobTitle?: string; branch?: string; interviewAt?: string; iv?: Interview };
+
+const ivDate = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short", year: "numeric" });
+const ivTime = (iso: string) => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 
 type Col = { id: string; label: string; get: (r: ExportRow) => string; group: "Candidate" | "Form answers" | "Your columns" };
 
 const STD: Col[] = [
+  { id: "iv_date", label: "Interview date", get: (r) => (r.iv ? ivDate(r.iv.scheduled_at) : "") },
+  { id: "iv_time", label: "Time", get: (r) => (r.iv ? ivTime(r.iv.scheduled_at) : "") },
   { id: "full_name", label: "Name", get: (r) => r.c.full_name },
+  { id: "iv_round", label: "Round", get: (r) => r.iv?.kind || "" },
+  { id: "iv_mode", label: "Mode", get: (r) => r.iv?.mode || "" },
+  { id: "iv_venue", label: "Venue / link", get: (r) => r.iv?.location || "" },
+  { id: "iv_interviewer", label: "Interviewer", get: (r) => r.iv?.interviewer || "" },
+  { id: "iv_status", label: "Interview status", get: (r) => r.iv?.status || "" },
+  { id: "iv_result", label: "Result", get: (r) => r.iv?.result || "" },
   { id: "position", label: "Applied for", get: (r) => r.jobTitle || r.c.job_role || "" },
   { id: "branch", label: "Branch", get: (r) => r.branch || "" },
   { id: "client_interview", label: "Client interview on", get: (r) => (r.interviewAt ? formatDateTime(r.interviewAt) : "") },

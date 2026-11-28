@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CalendarPlus, ChevronDown, ChevronRight, MessageCircle, MapPin, Video, Users, Trash2, ArrowRightLeft, CheckCircle2, Circle, X, Share2, Copy } from "lucide-react";
+import { CalendarPlus, ChevronDown, ChevronRight, MessageCircle, MapPin, Video, Users, Trash2, ArrowRightLeft, CheckCircle2, Circle, X, Share2, Copy, Download } from "lucide-react";
+import ExportDialog, { type ExportRow } from "@/components/hr/ExportDialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +34,7 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [reschedule, setReschedule] = useState({ when: "", gap: "0" });
   const [share, setShare] = useState<{ text: string; phones: boolean } | null>(null);
+  const [exportRows, setExportRows] = useState<ExportRow[] | null>(null);
   const jobFilter = params.get("job") ?? "";
   const today = todayISO();
 
@@ -186,6 +188,22 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   };
 
+  /** Everything on screen (tab + vacancy filter, or just the ticked ones), in real time order. */
+  const openExport = () => {
+    const src = selIds.length ? list.filter((i) => selIds.includes(i.id)) : list;
+    const rows = [...src].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)).flatMap((i) => {
+      const a = crm.application.get(i.application_id);
+      const c = a ? crm.candidate.get(a.candidate_id) : undefined;
+      const j = a ? crm.job.get(a.job_id) : undefined;
+      return a && c ? [{ c, a, iv: i, jobTitle: j?.title, branch: j?.location?.trim() || "" }] : [];
+    });
+    if (!rows.length) { toast({ title: "No interviews to export here" }); return; }
+    setExportRows(rows);
+  };
+  const viewName = { today: "Today", upcoming: "Upcoming", pending: "Awaiting result", past: "Past", all: "All" }[view] ?? view;
+  const exportJob = jobFilter ? crm.job.get(jobFilter) : undefined;
+  const levelName = level === "internal" ? "Internal interview" : "Client interview";
+
   const inviteText = (i: Interview) => {
     const c = candidateFor(i);
     const app = crm.application.get(i.application_id);
@@ -210,6 +228,7 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
         actions={<>
           <Button onClick={() => ui.openBulkSchedule(jobFilter || undefined, level)}><Users className="w-4 h-4 mr-1" />{level === "client" ? "Schedule client round for many" : "Schedule many at once"}</Button>
           <Button variant="outline" onClick={() => ui.openSchedule(undefined, level)}><CalendarPlus className="w-4 h-4 mr-1" />Schedule one</Button>
+          <Button variant="outline" onClick={openExport} title="Excel of the interviews shown below, in time order"><Download className="w-4 h-4 mr-1" />Export schedule</Button>
         </>} />
 
       <div className="flex flex-wrap items-center gap-3 mb-5">
@@ -340,6 +359,15 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
           })}
         </div>
       )}
+      <ExportDialog open={!!exportRows} onOpenChange={(v) => !v && setExportRows(null)} rows={exportRows ?? []}
+        title={`${levelName.toLowerCase()} schedule`}
+        heading={{
+          title: "Interview Schedule",
+          subtitle: [levelName + "s", viewName, exportJob ? exportJob.title : "All vacancies", `${exportRows?.length ?? 0} candidate(s) · in time order`].join("  ·  "),
+        }}
+        filename={`${level === "internal" ? "Internal" : "Client"}_interview_schedule_${viewName.replace(/\s+/g, "_")}_${today}.xlsx`}
+        preset={["iv_date", "iv_time", "full_name", "position", "branch", "iv_round", "iv_mode", "experience", "current_employer", "expected_salary", "cv_url"]}
+        storeKey={`hr.scheduleExportCols.${level}`} />
       <Dialog open={!!share} onOpenChange={(v) => !v && setShare(null)}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
