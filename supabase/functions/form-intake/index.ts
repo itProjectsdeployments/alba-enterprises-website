@@ -174,28 +174,32 @@ Deno.serve(async (req) => {
     // a row. A person is therefore imported once per spreadsheet tab: anyone already received from
     // this tab (by row, phone or email) is skipped, and HR's removals in the CRM stay removed.
     const tabKey = `${sheet_id ?? "?"}:${sheet_name ?? "?"}`;
-    const { data: existing } = await db.from("crm_candidates").select("id, phone, email, source_ref, extra").limit(20000);
+    const { data: existing } = await db.from("crm_candidates").select("id, full_name, phone, email, source_ref, extra").limit(20000);
     const byPhone = new Map<string, string>();
     const byEmail = new Map<string, string>();
     const refs = new Set<string>();
     const fromTab = new Set<string>();
     const tabsOf = new Map<string, string[]>();
+    const tabNames = new Map<string, boolean>(); // name -> has a usable phone/email
     (existing || []).forEach((c) => {
       const k = phoneKey(c.phone);
       if (k.length >= 10) byPhone.set(k, c.id);
-      if (c.email) byEmail.set(String(c.email).toLowerCase(), c.id);
+      const em = String(c.email ?? "").toLowerCase();
+      if (em.includes("@")) byEmail.set(em, c.id);
       if (c.source_ref) refs.add(c.source_ref);
       const seenTabs = Array.isArray((c.extra as Record<string, unknown> | null)?._tabs) ? ((c.extra as Record<string, unknown>)._tabs as string[]) : [];
       tabsOf.set(c.id, seenTabs);
-      if (String(c.source_ref ?? "").startsWith(`gform:${tabKey}:`) || seenTabs.includes(tabKey)) fromTab.add(c.id);
+      if (String(c.source_ref ?? "").startsWith(`gform:${tabKey}:`) || seenTabs.includes(tabKey)) {
+        fromTab.add(c.id);
+        tabNames.set(squash(String(c.full_name ?? "")), k.length >= 10 || em.includes("@"));
+      }
     });
 
     let added = 0, matched = 0, skipped = 0, linked = 0, unrouted = 0;
     for (const { row, data } of rows) {
-      const ref = `gform:${tabKey}:${row}`.slice(0, 300);
-      if (refs.has(ref)) { skipped++; continue; }
-
-      const rec: Record<string, unknown> = { source: "Google Form", status: "New", source_ref: ref };
+      // Rows move when people sort, insert or delete rows, so the row number alone never decides who is new.
+      const baseRef = `gform:${tabKey}:${row}`.slice(0, 280);
+      const rec: Record<string, unknown> = { source: "Google Form", status: "New" };
       const extra: Record<string, string> = { "Google Form": formTitle, _sheet_id: String(sheet_id ?? ""), _sheet_gid: String(sheet_gid ?? "") };
       const notes: string[] = [];
       for (const [header, raw] of Object.entries(data || {})) {
@@ -221,10 +225,19 @@ Deno.serve(async (req) => {
       rec.extra = extra;
 
       const pk = phoneKey(rec.phone as string);
-      const ek = ((rec.email as string) || "").toLowerCase();
+      const ek = ((rec.email as string) || "").toLowerCase().includes("@") ? String(rec.email).toLowerCase() : "";
       let candidateId = (pk.length >= 10 && byPhone.get(pk)) || (ek && byEmail.get(ek)) || null;
 
       if (candidateId && fromTab.has(candidateId)) { skipped++; continue; }
+      const hasContact = pk.length >= 10 || !!ek;
+      if (!candidateId) {
+        // Same name already received from this tab, and one of the two rows has no usable phone/email: same person.
+        const nk = squash(String(rec.full_name));
+        if (tabNames.has(nk) && (!hasContact || !tabNames.get(nk))) { skipped++; continue; }
+        if (!hasContact && refs.has(baseRef)) { skipped++; continue; }
+      }
+      const ref = refs.has(baseRef) ? `${baseRef}:${pk || ek || squash(String(rec.full_name))}`.slice(0, 300) : baseRef;
+      rec.source_ref = ref;
       if (candidateId) {
         matched++;
         fromTab.add(candidateId);
@@ -238,6 +251,7 @@ Deno.serve(async (req) => {
         candidateId = ins.id;
         added++;
         fromTab.add(candidateId!);
+        tabNames.set(squash(String(rec.full_name)), hasContact);
         if (pk.length >= 10) byPhone.set(pk, candidateId!);
         if (ek) byEmail.set(ek, candidateId!);
         await db.from("crm_activities").insert({ candidate_id: candidateId, kind: "note", content: `Applied via Google Form "${formTitle}"`, created_by_email: "Google Form" });
