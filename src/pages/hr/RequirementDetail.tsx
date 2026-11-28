@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { clientRequirementsPath } from "./Requirements";
-import { ArrowLeft, Pencil, UserPlus, Globe, Share2, Trash2, Building2, Phone, CalendarPlus, ListTodo } from "lucide-react";
+import { ArrowLeft, Pencil, UserPlus, Globe, Share2, Trash2, Building2, Phone, CalendarPlus, ListTodo, Download } from "lucide-react";
+import ClientExportDialog from "@/components/hr/ClientExportDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +39,7 @@ const RequirementDetail = () => {
   const { toast } = useToast();
   const [editOpen, setEditOpen] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
+  const [clientExport, setClientExport] = useState(false);
   const [view, setView] = useState<"table" | "board">(() => {
     try { return localStorage.getItem("hr.reqView") === "board" ? "board" : "table"; } catch { return "table"; }
   });
@@ -116,6 +118,7 @@ const RequirementDetail = () => {
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => ui.openAddToJob({ jobId: job.id })}><UserPlus className="w-4 h-4 mr-1" />Add candidates</Button>
             <Button variant="outline" onClick={() => ui.openBulkSchedule(job.id)}><CalendarPlus className="w-4 h-4 mr-1" />Schedule interviews</Button>
+            <Button variant="outline" onClick={() => setClientExport(true)}><Download className="w-4 h-4 mr-1" />Export for client</Button>
             <Button variant="outline" onClick={() => setEditOpen(true)}><Pencil className="w-4 h-4 mr-1" />Edit</Button>
             <Button variant="outline" onClick={publish}><Globe className="w-4 h-4 mr-1" />{job.public_job_id ? "Show/hide on website" : "Publish on website"}</Button>
             <Button variant="outline" onClick={share}><Share2 className="w-4 h-4 mr-1" />Share job post</Button>
@@ -187,6 +190,7 @@ const RequirementDetail = () => {
       </div>
 
       <JobDialog open={editOpen} onOpenChange={setEditOpen} initial={job} onNewClient={() => ui.openNewClient()} />
+      <ClientExportDialog open={clientExport} onOpenChange={setClientExport} clientId={job.client_id} clientName={client?.name ?? "Client"} jobId={job.id} />
     </div>
   );
 };
