@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CalendarPlus, ChevronDown, ChevronRight, MessageCircle, MapPin, Video, Users, Trash2, ArrowRightLeft, CheckCircle2, Circle, X } from "lucide-react";
+import { CalendarPlus, ChevronDown, ChevronRight, MessageCircle, MapPin, Video, Users, Trash2, ArrowRightLeft, CheckCircle2, Circle, X, Share2, Copy } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,6 +32,7 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [reschedule, setReschedule] = useState({ when: "", gap: "0" });
+  const [share, setShare] = useState<{ text: string; phones: boolean } | null>(null);
   const jobFilter = params.get("job") ?? "";
   const today = todayISO();
 
@@ -145,6 +148,44 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
     setSelected(new Set());
   };
 
+  /** Plain-text schedule for the interviewer: today's interviews (respecting the vacancy filter), by vacancy, in time order. */
+  const scheduleText = (phones: boolean) => {
+    const items = todayAll
+      .filter((i) => { const a = crm.application.get(i.application_id); return a && (!jobFilter || a.job_id === jobFilter); })
+      .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
+    const groups = new Map<string, Interview[]>();
+    items.forEach((i) => { const jid = crm.application.get(i.application_id)!.job_id; groups.set(jid, [...(groups.get(jid) || []), i]); });
+    const lines = [`*${level === "internal" ? "Internal" : "Client"} interview schedule – ${dayLabel(today)}*`, `Total: ${items.length} candidate(s)`, ""];
+    groups.forEach((list, jid) => {
+      const j = crm.job.get(jid);
+      const client = j?.client_id ? crm.client.get(j.client_id) : undefined;
+      const f = list[0];
+      lines.push(`*${j?.title ?? "Vacancy"}*${[j?.location, client?.name].filter(Boolean).map((x) => " · " + x).join("")}`);
+      lines.push(`${f.kind} · ${f.mode}${f.location ? " · " + f.location : ""}`);
+      list.forEach((i, k) => {
+        const c = candidateFor(i);
+        const pos = c ? positionAnswerOf(c) : "";
+        lines.push(`${k + 1}. ${timeLabel(i.scheduled_at)} – ${c?.full_name ?? "Candidate"}${pos ? " (" + pos + ")" : ""}${phones && c?.phone ? " · " + c.phone : ""}${i.status === "Completed" ? " ✓ done" : ""}`);
+      });
+      lines.push("");
+    });
+    lines.push("– Alba Enterprise");
+    return lines.join("\n");
+  };
+  const copyShare = async () => {
+    if (!share) return;
+    try { await navigator.clipboard.writeText(share.text); toast({ title: "Schedule copied", description: "Paste it in WhatsApp, email or a note." }); }
+    catch { toast({ title: "Could not copy", description: "Select the text and copy it manually.", variant: "destructive" }); }
+  };
+  const downloadShare = () => {
+    if (!share) return;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([share.text.replace(/\*/g, "")], { type: "text/plain;charset=utf-8" }));
+    a.download = `Interview_schedule_${today}.txt`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+
   const inviteText = (i: Interview) => {
     const c = candidateFor(i);
     const app = crm.application.get(i.application_id);
@@ -200,6 +241,7 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
           <Pill tone="bg-emerald-100 text-emerald-800 border-emerald-200">{todayDone} done</Pill>
           <Pill tone="bg-slate-100 text-slate-700 border-slate-200">{todayAll.length - todayDone} remaining</Pill>
           <div className="h-2 flex-1 min-w-[120px] rounded-full bg-muted overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${(todayDone / todayAll.length) * 100}%` }} /></div>
+          <Button size="sm" variant="outline" onClick={() => setShare({ text: scheduleText(false), phones: false })}><Share2 className="w-4 h-4 mr-1" />Share today's schedule</Button>
         </div>
       )}
 
@@ -298,6 +340,29 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
           })}
         </div>
       )}
+      <Dialog open={!!share} onOpenChange={(v) => !v && setShare(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Today's schedule for the interviewer</DialogTitle>
+            <DialogDescription>Name, position and time{jobFilter ? " for the selected vacancy" : " for all vacancies"}. You can edit the text before sending.</DialogDescription>
+          </DialogHeader>
+          {share && (
+            <>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox checked={share.phones} onCheckedChange={(v) => setShare({ text: scheduleText(!!v), phones: !!v })} />Include candidates' phone numbers
+              </label>
+              <Textarea value={share.text} onChange={(e) => setShare({ ...share, text: e.target.value })} rows={14} className="font-mono text-sm" />
+            </>
+          )}
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={downloadShare}>Download .txt</Button>
+            <Button variant="outline" onClick={copyShare}><Copy className="w-4 h-4 mr-1" />Copy</Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700" asChild>
+              <a href={`https://wa.me/?text=${encodeURIComponent(share?.text ?? "")}`} target="_blank" rel="noopener noreferrer"><MessageCircle className="w-4 h-4 mr-1" />Send on WhatsApp</a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {sessions.length > 0 && (
         <p className="text-xs text-muted-foreground mt-4 flex items-center gap-1">
           <MapPin className="w-3 h-3" />Tip: tick the box on a session header to select all its candidates, then mark results or reschedule them together.
