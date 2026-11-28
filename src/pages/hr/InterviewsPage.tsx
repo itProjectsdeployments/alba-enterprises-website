@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CalendarPlus, ChevronDown, ChevronRight, MessageCircle, MapPin, Video, Users, Trash2, ArrowRightLeft } from "lucide-react";
+import { CalendarPlus, ChevronDown, ChevronRight, MessageCircle, MapPin, Video, Users, Trash2, ArrowRightLeft, CheckCircle2, Circle, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,7 +26,7 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
   const run = useAction();
   const { toast } = useToast();
   const [params, setParams] = useSearchParams();
-  const [view, setView] = useState("upcoming");
+  const [view, setView] = useState("today");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [reschedule, setReschedule] = useState({ when: "", gap: "0" });
@@ -39,12 +39,13 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
       if (levelOfKind(i.kind) !== level) return false;
       const app = crm.application.get(i.application_id);
       if (!app || (jobFilter && app.job_id !== jobFilter)) return false;
+      if (view === "today") return toISODate(new Date(i.scheduled_at)) === today && i.status !== "Cancelled";
       if (view === "upcoming") return i.scheduled_at >= cutoff && i.status !== "Cancelled";
-      if (view === "pending") return i.scheduled_at < cutoff && i.result === "Pending" && i.status !== "Cancelled";
+      if (view === "pending") return (i.scheduled_at < cutoff || i.status === "Completed") && i.result === "Pending" && i.status !== "Cancelled";
       if (view === "past") return i.scheduled_at < cutoff;
       return true;
-    }).sort((a, b) => (view === "upcoming" ? a.scheduled_at.localeCompare(b.scheduled_at) : b.scheduled_at.localeCompare(a.scheduled_at)));
-  }, [crm.interviews, crm.application, view, jobFilter, level]);
+    }).sort((a, b) => (view === "upcoming" || view === "today" ? a.scheduled_at.localeCompare(b.scheduled_at) : b.scheduled_at.localeCompare(a.scheduled_at)));
+  }, [crm.interviews, crm.application, view, jobFilter, level, today]);
 
   // A "session" = one vacancy on one day.
   const sessions = useMemo(() => {
@@ -59,7 +60,10 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
     return [...m.values()];
   }, [list, crm.application]);
 
-  const pendingCount = crm.interviews.filter((i) => levelOfKind(i.kind) === level && i.scheduled_at < new Date(Date.now() - 2 * 3600000).toISOString() && i.result === "Pending" && i.status !== "Cancelled").length;
+  const todayAll = crm.interviews.filter((i) => levelOfKind(i.kind) === level && i.status !== "Cancelled" && toISODate(new Date(i.scheduled_at)) === today);
+  const todayDone = todayAll.filter((i) => i.status === "Completed").length;
+  const isDone = (i: Interview) => i.status === "Completed";
+  const pendingCount = crm.interviews.filter((i) => levelOfKind(i.kind) === level && (i.scheduled_at < new Date(Date.now() - 2 * 3600000).toISOString() || i.status === "Completed") && i.result === "Pending" && i.status !== "Cancelled").length;
   const jobsWithInterviews = [...new Set(crm.interviews.filter((i) => levelOfKind(i.kind) === level).map((i) => crm.application.get(i.application_id)?.job_id).filter(Boolean) as string[])];
   const selIds = [...selected].filter((id) => list.some((i) => i.id === id));
 
@@ -111,6 +115,12 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
     const { error } = await supabase.from("crm_interviews").update({ status }).in("id", ids);
     if (error) throw error;
   }, { success: `${ids.length} marked ${status}`, refresh: ["crm_interviews"] });
+
+  /** Interview held: status Completed. The result (passed/failed) can be set now or later. */
+  const markDone = (ids: string[], done = true) => run(async () => {
+    const { error } = await supabase.from("crm_interviews").update({ status: done ? "Completed" : "Scheduled" }).in("id", ids);
+    if (error) throw error;
+  }, { success: done ? (ids.length === 1 ? "Marked as done" : `${ids.length} marked as done`) : "Marked as not done", refresh: ["crm_interviews"] });
 
   const remove = async (ids: string[]) => {
     if (!ids.length || !confirm(ids.length === 1 ? "Delete this interview? The candidate stays on the vacancy." : `Delete ${ids.length} interviews? The candidates stay on the vacancy.`)) return;
@@ -164,6 +174,7 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
       <div className="flex flex-wrap items-center gap-3 mb-5">
         <Tabs value={view} onValueChange={(v) => { setView(v); setSelected(new Set()); }}>
           <TabsList>
+            <TabsTrigger value="today">Today {todayAll.length ? `(${todayAll.length})` : ""}</TabsTrigger>
             <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
             <TabsTrigger value="pending">Awaiting result {pendingCount ? `(${pendingCount})` : ""}</TabsTrigger>
             <TabsTrigger value="past">Past</TabsTrigger>
@@ -172,14 +183,30 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
         </Tabs>
         <div className="w-80 max-w-full">
           <NativeSelect value={jobFilter} onChange={(v) => { if (v) params.set("job", v); else params.delete("job"); setParams(params, { replace: true }); setSelected(new Set()); }}
-            placeholder="All vacancies" className="bg-card"
+            placeholder="Filter by vacancy (all)" className="bg-card"
             options={jobsWithInterviews.map((id) => crm.job.get(id)).filter(Boolean).map((j) => ({ value: j!.id, label: [j!.title, j!.location].filter(Boolean).join(" · ") }))} />
         </div>
+        {jobFilter && (
+          <Button size="sm" variant="ghost" onClick={() => { params.delete("job"); setParams(params, { replace: true }); setSelected(new Set()); }}>
+            <X className="w-4 h-4 mr-1" />Show all vacancies
+          </Button>
+        )}
       </div>
+
+      {view === "today" && todayAll.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border bg-card px-4 py-3 text-sm">
+          <span className="font-semibold">Today · {dayLabel(today)}</span>
+          <span className="text-muted-foreground">{todayAll.length} interview(s) across all vacancies</span>
+          <Pill tone="bg-emerald-100 text-emerald-800 border-emerald-200">{todayDone} done</Pill>
+          <Pill tone="bg-slate-100 text-slate-700 border-slate-200">{todayAll.length - todayDone} remaining</Pill>
+          <div className="h-2 flex-1 min-w-[120px] rounded-full bg-muted overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${(todayDone / todayAll.length) * 100}%` }} /></div>
+        </div>
+      )}
 
       {selIds.length > 0 && (
         <div className="sticky top-16 z-10 mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-card shadow-sm px-4 py-3 text-sm">
           <span className="font-semibold mr-1">{selIds.length} selected</span>
+          <Button size="sm" onClick={() => markDone(selIds)}><CheckCircle2 className="w-4 h-4 mr-1" />Mark done</Button>
           <Button size="sm" variant="outline" className="text-emerald-700" onClick={() => setResult(selIds, "Passed")}>Passed</Button>
           <Button size="sm" variant="outline" className="text-orange-700" onClick={() => setResult(selIds, "On Hold")}>On hold</Button>
           <Button size="sm" variant="outline" className="text-rose-700" onClick={() => setResult(selIds, "Failed")}>Failed</Button>
@@ -198,7 +225,7 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
       )}
 
       {sessions.length === 0 ? (
-        <EmptyState icon={Video} title={view === "pending" ? "All results recorded" : "No interviews here"}
+        <EmptyState icon={Video} title={view === "pending" ? "All results recorded" : view === "today" ? "No interviews today" : "No interviews here"}
           text={level === "internal" ? "Use “Schedule many at once” to set up internal interviews for everyone on a vacancy." : "Candidates who pass the internal interview appear in Step 5. Schedule their client interview, trial or extra rounds here."}
           action={<Button onClick={() => ui.openBulkSchedule(jobFilter || undefined, level)}>Schedule many at once</Button>} />
       ) : (
@@ -225,7 +252,10 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
                       </span>
                     </span>
                   </button>
-                  <div className="flex flex-wrap gap-1.5 text-xs">
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                    {s.items.some((i) => !isDone(i))
+                      ? <Button size="sm" variant="outline" className="h-7 text-xs text-emerald-700" onClick={() => markDone(s.items.filter((i) => !isDone(i)).map((i) => i.id))}><CheckCircle2 className="w-3.5 h-3.5 mr-1" />Mark all done</Button>
+                      : <Pill tone="bg-emerald-100 text-emerald-800 border-emerald-200">✓ All done</Pill>}
                     <Pill tone={RESULT_TONE.Passed}>{counts.Passed} passed</Pill>
                     <Pill tone={RESULT_TONE["On Hold"]}>{counts["On Hold"]} on hold</Pill>
                     <Pill tone={RESULT_TONE.Failed}>{counts.Failed} failed</Pill>
@@ -237,13 +267,13 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
                     {s.items.map((i) => {
                       const c = candidateFor(i);
                       return (
-                        <div key={i.id} className={`flex flex-wrap items-center gap-3 px-4 py-2.5 ${selected.has(i.id) ? "bg-primary/5" : ""}`}>
+                        <div key={i.id} className={`flex flex-wrap items-center gap-3 px-4 py-2.5 ${selected.has(i.id) ? "bg-primary/5" : isDone(i) ? "bg-emerald-50/60" : ""}`}>
                           <Checkbox checked={selected.has(i.id)} onCheckedChange={() => toggle(i.id)} aria-label={`Select ${c?.full_name}`} />
                           <input type="datetime-local" defaultValue={toLocalInput(i.scheduled_at)} key={i.scheduled_at}
                             onBlur={(e) => e.target.value && e.target.value !== toLocalInput(i.scheduled_at) && changeTime(i, e.target.value)}
                             className="h-9 rounded-md border px-2 text-sm bg-background w-[200px]" title="Change this candidate's time" />
                           <button onClick={() => ui.openApplication(i.application_id)} className="flex-1 min-w-[180px] text-left">
-                            <span className="font-medium hover:text-primary block">{c?.full_name}</span>
+                            <span className="font-medium hover:text-primary block">{c?.full_name}{isDone(i) && <CheckCircle2 className="inline w-4 h-4 ml-1.5 text-emerald-600 -mt-0.5" />}</span>
                             <span className="text-xs text-muted-foreground">{[c?.phone, c ? positionAnswerOf(c) : null].filter(Boolean).join(" · ")}</span>
                           </button>
                           {c?.phone && (
@@ -251,6 +281,9 @@ const InterviewsPage = ({ level }: { level: "internal" | "client" }) => {
                               <a href={`${waLink(c.phone)}?text=${encodeURIComponent(inviteText(i))}`} target="_blank" rel="noopener noreferrer"><MessageCircle className="w-4 h-4 mr-1" />Invite</a>
                             </Button>
                           )}
+                          {isDone(i)
+                            ? <Button size="sm" variant="ghost" className="h-9 text-emerald-700" onClick={() => markDone([i.id], false)} title="Click to mark as not done"><CheckCircle2 className="w-4 h-4 mr-1" />Done</Button>
+                            : <Button size="sm" variant="outline" className="h-9" onClick={() => markDone([i.id])} title="Interview held"><Circle className="w-4 h-4 mr-1" />Mark done</Button>}
                           <div className="w-32"><NativeSelect value={i.status} onChange={(v) => setStatus([i.id], v)} options={INTERVIEW_STATUSES} className="h-9" /></div>
                           <div className="w-28"><NativeSelect value={i.result} onChange={(v) => setResult([i.id], v)} options={INTERVIEW_RESULTS} className={`h-9 ${RESULT_TONE[i.result] ?? ""}`} /></div>
                           <Button size="icon" variant="ghost" className="h-9 w-9 text-muted-foreground hover:text-primary" onClick={() => ui.openMove([i.application_id])} title="Move to another requirement" aria-label={`Move ${c?.full_name} to another requirement`}><ArrowRightLeft className="w-4 h-4" /></Button>
